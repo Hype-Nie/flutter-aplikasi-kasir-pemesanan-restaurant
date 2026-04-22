@@ -1,0 +1,1 @@
+// App root widget configuration
