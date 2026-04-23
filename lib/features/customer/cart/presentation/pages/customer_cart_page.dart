@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../checkout/presentation/pages/customer_checkout_page.dart';
 import '../bloc/customer_cart_bloc.dart';
 import '../bloc/customer_cart_event.dart';
 import '../bloc/customer_cart_state.dart';
@@ -66,7 +67,7 @@ class _CustomerCartView extends StatelessWidget {
                       color: Colors.black54,
                     ),
                     SizedBox(width: 8),
-                    Text(
+                    const Text(
                       'swipe on an item to delete',
                       style: TextStyle(
                         fontSize: 10,
@@ -98,7 +99,12 @@ class _CustomerCartView extends StatelessWidget {
                   width: double.infinity,
                   height: 64,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CustomerCheckoutPage(),
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accent,
                       shape: RoundedRectangleBorder(
@@ -204,11 +210,6 @@ class _CartItemTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             _ActionBtn(
-              icon: Icons.favorite_border,
-              color: const Color(0xFFDF2C2C),
-            ),
-            const SizedBox(width: 12),
-            _ActionBtn(
               icon: Icons.delete_outline,
               color: const Color(0xFFDF2C2C),
             ),
@@ -261,10 +262,10 @@ class _CartItemTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    item.price,
+                  const Text(
+                    'N1,900',
                     style: TextStyle(
-                      color: accent,
+                      color: Color(0xFFFF460A),
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),

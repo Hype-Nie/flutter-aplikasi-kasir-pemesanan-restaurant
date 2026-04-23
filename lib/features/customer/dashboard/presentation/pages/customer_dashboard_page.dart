@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 
-import 'customer_menu_results_page.dart';
+import 'package:restaurant/features/customer/search/presentation/pages/customer_search_page.dart';
 import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
 import 'package:restaurant/features/customer/cart/presentation/pages/customer_cart_page.dart';
+import 'package:restaurant/features/customer/profile/presentation/pages/customer_profile_page.dart';
+import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
+import 'package:restaurant/shared/pages/no_internet_page.dart';
+import 'customer_offers_page.dart';
 
 import '../bloc/customer_dashboard_bloc.dart';
 import '../bloc/customer_dashboard_event.dart';
@@ -172,7 +176,7 @@ class _DashboardScreenState extends State<_DashboardScreen> {
             opacity: animation,
             child: SlideTransition(
               position: slide,
-              child: CustomerMenuResultsPage(initialQuery: q, items: payload),
+              child: CustomerSearchPage(initialQuery: q, items: payload),
             ),
           );
         },
@@ -231,6 +235,7 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                         accent: accent,
                         iconSize: iconSize,
                         titleSize: titleSize,
+                        isDrawerOpen: _drawerOpen,
                         searchController: _searchController,
                         selectedCategoryName: selectedCategoryName,
                         categories: _categories,
@@ -301,6 +306,7 @@ class _DashboardHomeContent extends StatelessWidget {
     required this.accent,
     required this.iconSize,
     required this.titleSize,
+    required this.isDrawerOpen,
     required this.searchController,
     required this.selectedCategoryName,
     required this.categories,
@@ -322,6 +328,7 @@ class _DashboardHomeContent extends StatelessWidget {
   final Color accent;
   final double iconSize;
   final double titleSize;
+  final bool isDrawerOpen;
   final TextEditingController searchController;
   final String selectedCategoryName;
   final List<String> categories;
@@ -351,6 +358,7 @@ class _DashboardHomeContent extends StatelessWidget {
                   child: _DashboardHeader(
                     iconSize: iconSize,
                     titleSize: titleSize,
+                    isDrawerOpen: isDrawerOpen,
                     searchController: searchController,
                     onMenuTap: onMenuTap,
                     onCartTap: onCartTap,
@@ -412,6 +420,7 @@ class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.iconSize,
     required this.titleSize,
+    required this.isDrawerOpen,
     required this.searchController,
     required this.onMenuTap,
     required this.onCartTap,
@@ -421,6 +430,7 @@ class _DashboardHeader extends StatelessWidget {
 
   final double iconSize;
   final double titleSize;
+  final bool isDrawerOpen;
   final TextEditingController searchController;
   final VoidCallback onMenuTap;
   final VoidCallback onCartTap;
@@ -444,6 +454,18 @@ class _DashboardHeader extends StatelessWidget {
                   color: Colors.black87,
                 ),
               ),
+              if (isDrawerOpen)
+                const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Text(
+                    'tap again to close',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black45,
+                    ),
+                  ),
+                ),
               const Spacer(),
               IconButton(
                 onPressed: onCartTap,
@@ -778,19 +800,30 @@ class _BottomNavBar extends StatelessWidget {
               onTap: () => onSelect(0),
             ),
             _BottomNavIcon(
-              icon: Icons.favorite_border_rounded,
-              active: selectedIndex == 1,
-              onTap: () => onSelect(1),
-            ),
-            _BottomNavIcon(
               icon: Icons.person_outline_rounded,
-              active: selectedIndex == 2,
-              onTap: () => onSelect(2),
+              active: selectedIndex == 1,
+              onTap: () async {
+                onSelect(1);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CustomerProfilePage()),
+                );
+                onSelect(0);
+              },
             ),
             _BottomNavIcon(
               icon: Icons.history_rounded,
-              active: selectedIndex == 3,
-              onTap: () => onSelect(3),
+              active: selectedIndex == 2,
+              onTap: () async {
+                onSelect(2);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CustomerOrderHistoryPage(),
+                  ),
+                );
+                onSelect(0);
+              },
             ),
           ],
         ),
@@ -867,17 +900,27 @@ class _SideDrawer extends StatelessWidget {
               _DrawerAction(
                 title: 'Profile',
                 icon: Icons.person_outline_rounded,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerProfilePage())),
               ),
-              _DrawerAction(title: 'orders', icon: Icons.sync_alt_rounded),
+              _DrawerAction(
+                title: 'orders', 
+                icon: Icons.sync_alt_rounded,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerOrderHistoryPage())),
+              ),
               _DrawerAction(
                 title: 'offer and promo',
                 icon: Icons.local_offer_outlined,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerOffersPage())),
               ),
               _DrawerAction(
                 title: 'Privacy policy',
                 icon: Icons.chat_bubble_outline_rounded,
               ),
-              _DrawerAction(title: 'Security', icon: Icons.shield_outlined),
+              _DrawerAction(
+                title: 'Security', 
+                icon: Icons.shield_outlined,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoInternetPage())),
+              ),
               const Spacer(),
               InkWell(
                 onTap: onClose,
@@ -908,15 +951,16 @@ class _SideDrawer extends StatelessWidget {
 }
 
 class _DrawerAction extends StatelessWidget {
-  const _DrawerAction({required this.title, required this.icon});
+  const _DrawerAction({required this.title, required this.icon, this.onTap});
 
   final String title;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => ScaffoldMessenger.of(
+      onTap: onTap ?? () => ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('$title tapped'))),
       child: Padding(
