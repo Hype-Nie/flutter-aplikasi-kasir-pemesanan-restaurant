@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:restaurant/features/cashier/dashboard/presentation/pages/cashier_dashboard_page.dart';
 import 'package:restaurant/features/customer/dashboard/presentation/pages/customer_dashboard_page.dart';
 
 import '../bloc/auth_login_bloc.dart';
@@ -66,73 +68,80 @@ class _AuthLoginViewState extends State<_AuthLoginView> {
       320.0,
     );
 
-    return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _TopPanel(
-                        height: topPanelHeight,
-                        isLogin: _isLogin,
-                        onLoginTap: () => _switchTab(true),
-                        onSignupTap: () => _switchTab(false),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            horizontal,
-                            isSmall ? 22 : 30,
-                            horizontal,
-                            26,
-                          ),
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 320),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            transitionBuilder: (child, animation) {
-                              final offset = Tween<Offset>(
-                                begin: Offset(_slideDirection * 0.16, 0),
-                                end: Offset.zero,
-                              ).animate(animation);
-                              return FadeTransition(
-                                opacity: animation,
-                                child: SlideTransition(
-                                  position: offset,
-                                  child: child,
-                                ),
-                              );
-                            },
-                            child: _isLogin
-                                ? _LoginForm(
-                                    key: const ValueKey('login'),
-                                    accent: accent,
-                                    email: _loginEmail,
-                                    password: _loginPassword,
-                                  )
-                                : _SignUpForm(
-                                    key: const ValueKey('signup'),
-                                    accent: accent,
-                                    name: _signupName,
-                                    email: _signupEmail,
-                                    password: _signupPassword,
-                                    confirmPassword: _signupConfirmPassword,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: bg,
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _TopPanel(
+                          height: topPanelHeight,
+                          isLogin: _isLogin,
+                          onLoginTap: () => _switchTab(true),
+                          onSignupTap: () => _switchTab(false),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              horizontal,
+                              isSmall ? 22 : 30,
+                              horizontal,
+                              26,
+                            ),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 320),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              transitionBuilder: (child, animation) {
+                                final offset = Tween<Offset>(
+                                  begin: Offset(_slideDirection * 0.16, 0),
+                                  end: Offset.zero,
+                                ).animate(animation);
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: offset,
+                                    child: child,
                                   ),
+                                );
+                              },
+                              child: _isLogin
+                                  ? _LoginForm(
+                                      key: const ValueKey('login'),
+                                      accent: accent,
+                                      email: _loginEmail,
+                                      password: _loginPassword,
+                                    )
+                                  : _SignUpForm(
+                                      key: const ValueKey('signup'),
+                                      accent: accent,
+                                      name: _signupName,
+                                      email: _signupEmail,
+                                      password: _signupPassword,
+                                      confirmPassword: _signupConfirmPassword,
+                                    ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -311,10 +320,70 @@ class _LoginForm extends StatelessWidget {
           height: 54,
           child: ElevatedButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CustomerDashboardPage(),
+              showModalBottomSheet<String>(
+                context: context,
+                backgroundColor: Colors.transparent,
+                builder: (_) => Container(
+                  padding: const EdgeInsets.fromLTRB(24, 22, 24, 32),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD0D0D0),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Login as',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF121212),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      _RoleTile(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Customer',
+                        subtitle: 'Browse menu & place orders',
+                        color: accent,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CustomerDashboardPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      _RoleTile(
+                        icon: Icons.point_of_sale_rounded,
+                        label: 'Cashier',
+                        subtitle: 'Manage orders & transactions',
+                        color: accent,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CashierDashboardPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -468,6 +537,76 @@ class _LinedTextFieldState extends State<_LinedTextField> {
         const SizedBox(height: 6),
         Container(height: 1, color: const Color(0xFF8B8B8B)),
       ],
+    );
+  }
+}
+
+class _RoleTile extends StatelessWidget {
+  const _RoleTile({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF121212),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF8B8B8B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: color),
+          ],
+        ),
+      ),
     );
   }
 }
