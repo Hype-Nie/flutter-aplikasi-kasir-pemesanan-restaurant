@@ -1,6 +1,10 @@
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
+
+import 'customer_menu_results_page.dart';
+import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
 
 import '../bloc/customer_dashboard_bloc.dart';
 import '../bloc/customer_dashboard_event.dart';
@@ -127,8 +131,53 @@ class _DashboardScreenState extends State<_DashboardScreen> {
 
   int _selectedCategory = 0;
   int _selectedBottomNav = 0;
+  int _activeMenuIndex = 0;
   String _query = '';
   bool _drawerOpen = false;
+
+  void _openSearchPage(BuildContext context) {
+    final q = _query.trim();
+    if (q.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Type menu first to search')),
+      );
+      return;
+    }
+
+    final payload = _items
+        .map<Map<String, String>>(
+          (e) => {
+            'name': e.name,
+            'price': e.price,
+            'imageUrl': e.imageUrl,
+            'category': e.category,
+          },
+        )
+        .toList(growable: false);
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 240),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          final slide =
+              Tween<Offset>(
+                begin: const Offset(0.08, 0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              );
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: slide,
+              child: CustomerMenuResultsPage(initialQuery: q, items: payload),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,10 +193,7 @@ class _DashboardScreenState extends State<_DashboardScreen> {
     final showingItems = _items
         .where((item) {
           final categoryMatch = item.category == selectedCategoryName;
-          final searchMatch =
-              _query.isEmpty ||
-              item.name.toLowerCase().contains(_query.toLowerCase());
-          return categoryMatch && searchMatch;
+          return categoryMatch;
         })
         .toList(growable: false);
 
@@ -201,15 +247,34 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                           );
                         },
                         onSearchChanged: (value) =>
-                            setState(() => _query = value.trim()),
-                        onSelectCategory: (index) =>
-                            setState(() => _selectedCategory = index),
+                            setState(() => _query = value),
+                        onSearchSubmit: () => _openSearchPage(context),
+                        onSelectCategory: (index) => setState(() {
+                          _selectedCategory = index;
+                          _activeMenuIndex = 0;
+                        }),
                         onSelectBottomNav: (index) =>
                             setState(() => _selectedBottomNav = index),
-                        onSeeMoreTap: () =>
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('See more tapped')),
+                        onSeeMoreTap: () {
+                          if (showingItems.isEmpty) return;
+                          final safeIndex = _activeMenuIndex.clamp(
+                            0,
+                            showingItems.length - 1,
+                          );
+                          final item = showingItems[safeIndex];
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CustomerMenuDetailPage(
+                                name: item.name,
+                                price: item.price,
+                                imageUrl: item.imageUrl,
+                                heroTag: item.name,
+                              ),
                             ),
+                          );
+                        },
+                        onVisibleMenuChanged: (index) =>
+                            setState(() => _activeMenuIndex = index),
                       ),
                     ),
                   ),
@@ -245,9 +310,11 @@ class _DashboardHomeContent extends StatelessWidget {
     required this.onMenuTap,
     required this.onCartTap,
     required this.onSearchChanged,
+    required this.onSearchSubmit,
     required this.onSelectCategory,
     required this.onSelectBottomNav,
     required this.onSeeMoreTap,
+    required this.onVisibleMenuChanged,
   });
 
   final Color bg;
@@ -264,9 +331,11 @@ class _DashboardHomeContent extends StatelessWidget {
   final VoidCallback onMenuTap;
   final VoidCallback onCartTap;
   final ValueChanged<String> onSearchChanged;
+  final VoidCallback onSearchSubmit;
   final ValueChanged<int> onSelectCategory;
   final ValueChanged<int> onSelectBottomNav;
   final VoidCallback onSeeMoreTap;
+  final ValueChanged<int> onVisibleMenuChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -285,6 +354,7 @@ class _DashboardHomeContent extends StatelessWidget {
                     onMenuTap: onMenuTap,
                     onCartTap: onCartTap,
                     onSearchChanged: onSearchChanged,
+                    onSearchSubmit: onSearchSubmit,
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -317,6 +387,7 @@ class _DashboardHomeContent extends StatelessWidget {
                   child: _ProductCarousel(
                     items: showingItems,
                     cardWidth: cardWidth,
+                    onVisibleIndexChanged: onVisibleMenuChanged,
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 110)),
@@ -344,6 +415,7 @@ class _DashboardHeader extends StatelessWidget {
     required this.onMenuTap,
     required this.onCartTap,
     required this.onSearchChanged,
+    required this.onSearchSubmit,
   });
 
   final double iconSize;
@@ -352,6 +424,7 @@ class _DashboardHeader extends StatelessWidget {
   final VoidCallback onMenuTap;
   final VoidCallback onCartTap;
   final ValueChanged<String> onSearchChanged;
+  final VoidCallback onSearchSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -397,21 +470,42 @@ class _DashboardHeader extends StatelessWidget {
               color: const Color(0xFFF0F0F0),
               borderRadius: BorderRadius.circular(28),
             ),
-            child: TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search, size: 28, color: Colors.black87),
-                hintText: 'Search',
-                hintStyle: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF848484),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: IconButton(
+                    onPressed: onSearchSubmit,
+                    icon: const Icon(
+                      Icons.search,
+                      size: 28,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ),
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
-                border: InputBorder.none,
-              ),
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: onSearchChanged,
+                    onSubmitted: (_) => onSearchSubmit(),
+                    textInputAction: TextInputAction.search,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'Search',
+                      hintStyle: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF848484),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(vertical: 14),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 18),
@@ -483,10 +577,15 @@ class _CategoryTabs extends StatelessWidget {
 }
 
 class _ProductCarousel extends StatelessWidget {
-  const _ProductCarousel({required this.items, required this.cardWidth});
+  const _ProductCarousel({
+    required this.items,
+    required this.cardWidth,
+    required this.onVisibleIndexChanged,
+  });
 
   final List<_FoodItem> items;
   final double cardWidth;
+  final ValueChanged<int> onVisibleIndexChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -527,13 +626,19 @@ class _ProductCarousel extends StatelessWidget {
         height: metrics.totalHeight + topInset,
         child: Padding(
           padding: EdgeInsets.only(top: topInset),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(left: 18, right: 8),
+          child: CarouselSlider.builder(
             itemCount: renderItems.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 18),
-            itemBuilder: (_, index) =>
+            options: CarouselOptions(
+              height: metrics.totalHeight,
+              viewportFraction: 0.6,
+              enlargeCenterPage: true,
+              enableInfiniteScroll: false,
+              scrollDirection: Axis.horizontal,
+              onPageChanged: (index, reason) {
+                onVisibleIndexChanged(index);
+              },
+            ),
+            itemBuilder: (_, index, __) =>
                 _FoodCard(item: renderItems[index], width: cardWidth),
           ),
         ),
@@ -553,105 +658,99 @@ class _FoodCard extends StatelessWidget {
     const accent = Color(0xFFFF4D06);
     final metrics = _MenuCardMetrics.fromWidth(width);
     final imageLeft = (width - metrics.imageSize) / 2;
-    return InkWell(
-      onTap: () => ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('${item.name} selected'))),
-      borderRadius: BorderRadius.circular(32),
-      child: SizedBox(
-        width: width,
-        height: metrics.totalHeight,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              top: metrics.bodyTop,
-              left: 0,
-              right: 0,
+    return SizedBox(
+      width: width,
+      height: metrics.totalHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: metrics.bodyTop,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: metrics.bodyHeight,
+              padding: EdgeInsets.fromLTRB(
+                16,
+                metrics.contentTopPadding,
+                16,
+                18,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x11000000),
+                    blurRadius: 18,
+                    offset: Offset(0, 9),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    item.name,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: metrics.nameFont,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    item.price,
+                    style: TextStyle(
+                      fontSize: metrics.priceFont,
+                      fontWeight: FontWeight.w700,
+                      color: accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: imageLeft,
+            child: Hero(
+              tag: item.name,
               child: Container(
-                height: metrics.bodyHeight,
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  metrics.contentTopPadding,
-                  16,
-                  18,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: const [
+                width: metrics.imageSize,
+                height: metrics.imageSize,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x11000000),
-                      blurRadius: 18,
-                      offset: Offset(0, 9),
+                      color: Color(0x22000000),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      item.name,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: metrics.nameFont,
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      item.price,
-                      style: TextStyle(
-                        fontSize: metrics.priceFont,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: imageLeft,
-              child: Hero(
-                tag: item.name,
-                child: Container(
-                  width: metrics.imageSize,
-                  height: metrics.imageSize,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x22000000),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: Image.network(
-                      item.imageUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) {
-                        if (progress == null) return child;
-                        return const ColoredBox(
-                          color: Color(0xFFF0F0F0),
-                          child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => const ColoredBox(
+                child: ClipOval(
+                  child: Image.network(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
+                      return const ColoredBox(
                         color: Color(0xFFF0F0F0),
-                        child: Center(child: Icon(Icons.broken_image_outlined)),
-                      ),
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => const ColoredBox(
+                      color: Color(0xFFF0F0F0),
+                      child: Center(child: Icon(Icons.broken_image_outlined)),
                     ),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
