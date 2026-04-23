@@ -10,3 +10,22 @@ abstract class CustomerCartEvent extends Equatable {
 class CustomerCartStarted extends CustomerCartEvent {
   const CustomerCartStarted();
 }
+
+class CustomerCartItemUpdated extends CustomerCartEvent {
+  final String id;
+  final int quantity;
+
+  const CustomerCartItemUpdated(this.id, this.quantity);
+
+  @override
+  List<Object?> get props => [id, quantity];
+}
+
+class CustomerCartItemRemoved extends CustomerCartEvent {
+  final String id;
+
+  const CustomerCartItemRemoved(this.id);
+
+  @override
+  List<Object?> get props => [id];
+}

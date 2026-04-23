@@ -1,6 +1,15 @@
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
+
+import 'package:restaurant/features/customer/search/presentation/pages/customer_search_page.dart';
+import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
+import 'package:restaurant/features/customer/cart/presentation/pages/customer_cart_page.dart';
+import 'package:restaurant/features/customer/profile/presentation/pages/customer_profile_page.dart';
+import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
+import 'package:restaurant/shared/pages/no_internet_page.dart';
+import 'customer_offers_page.dart';
 
 import '../bloc/customer_dashboard_bloc.dart';
 import '../bloc/customer_dashboard_event.dart';
@@ -127,8 +136,53 @@ class _DashboardScreenState extends State<_DashboardScreen> {
 
   int _selectedCategory = 0;
   int _selectedBottomNav = 0;
+  int _activeMenuIndex = 0;
   String _query = '';
   bool _drawerOpen = false;
+
+  void _openSearchPage(BuildContext context) {
+    final q = _query.trim();
+    if (q.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Type menu first to search')),
+      );
+      return;
+    }
+
+    final payload = _items
+        .map<Map<String, String>>(
+          (e) => {
+            'name': e.name,
+            'price': e.price,
+            'imageUrl': e.imageUrl,
+            'category': e.category,
+          },
+        )
+        .toList(growable: false);
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 240),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          final slide =
+              Tween<Offset>(
+                begin: const Offset(0.08, 0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              );
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: slide,
+              child: CustomerSearchPage(initialQuery: q, items: payload),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,10 +198,7 @@ class _DashboardScreenState extends State<_DashboardScreen> {
     final showingItems = _items
         .where((item) {
           final categoryMatch = item.category == selectedCategoryName;
-          final searchMatch =
-              _query.isEmpty ||
-              item.name.toLowerCase().contains(_query.toLowerCase());
-          return categoryMatch && searchMatch;
+          return categoryMatch;
         })
         .toList(growable: false);
 
@@ -184,6 +235,7 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                         accent: accent,
                         iconSize: iconSize,
                         titleSize: titleSize,
+                        isDrawerOpen: _drawerOpen,
                         searchController: _searchController,
                         selectedCategoryName: selectedCategoryName,
                         categories: _categories,
@@ -196,20 +248,39 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                         onCartTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const _OrdersPage(),
+                              builder: (_) => const CustomerCartPage(),
                             ),
                           );
                         },
                         onSearchChanged: (value) =>
-                            setState(() => _query = value.trim()),
-                        onSelectCategory: (index) =>
-                            setState(() => _selectedCategory = index),
+                            setState(() => _query = value),
+                        onSearchSubmit: () => _openSearchPage(context),
+                        onSelectCategory: (index) => setState(() {
+                          _selectedCategory = index;
+                          _activeMenuIndex = 0;
+                        }),
                         onSelectBottomNav: (index) =>
                             setState(() => _selectedBottomNav = index),
-                        onSeeMoreTap: () =>
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('See more tapped')),
+                        onSeeMoreTap: () {
+                          if (showingItems.isEmpty) return;
+                          final safeIndex = _activeMenuIndex.clamp(
+                            0,
+                            showingItems.length - 1,
+                          );
+                          final item = showingItems[safeIndex];
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CustomerMenuDetailPage(
+                                name: item.name,
+                                price: item.price,
+                                imageUrl: item.imageUrl,
+                                heroTag: item.name,
+                              ),
                             ),
+                          );
+                        },
+                        onVisibleMenuChanged: (index) =>
+                            setState(() => _activeMenuIndex = index),
                       ),
                     ),
                   ),
@@ -235,6 +306,7 @@ class _DashboardHomeContent extends StatelessWidget {
     required this.accent,
     required this.iconSize,
     required this.titleSize,
+    required this.isDrawerOpen,
     required this.searchController,
     required this.selectedCategoryName,
     required this.categories,
@@ -245,15 +317,18 @@ class _DashboardHomeContent extends StatelessWidget {
     required this.onMenuTap,
     required this.onCartTap,
     required this.onSearchChanged,
+    required this.onSearchSubmit,
     required this.onSelectCategory,
     required this.onSelectBottomNav,
     required this.onSeeMoreTap,
+    required this.onVisibleMenuChanged,
   });
 
   final Color bg;
   final Color accent;
   final double iconSize;
   final double titleSize;
+  final bool isDrawerOpen;
   final TextEditingController searchController;
   final String selectedCategoryName;
   final List<String> categories;
@@ -264,9 +339,11 @@ class _DashboardHomeContent extends StatelessWidget {
   final VoidCallback onMenuTap;
   final VoidCallback onCartTap;
   final ValueChanged<String> onSearchChanged;
+  final VoidCallback onSearchSubmit;
   final ValueChanged<int> onSelectCategory;
   final ValueChanged<int> onSelectBottomNav;
   final VoidCallback onSeeMoreTap;
+  final ValueChanged<int> onVisibleMenuChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -281,10 +358,12 @@ class _DashboardHomeContent extends StatelessWidget {
                   child: _DashboardHeader(
                     iconSize: iconSize,
                     titleSize: titleSize,
+                    isDrawerOpen: isDrawerOpen,
                     searchController: searchController,
                     onMenuTap: onMenuTap,
                     onCartTap: onCartTap,
                     onSearchChanged: onSearchChanged,
+                    onSearchSubmit: onSearchSubmit,
                   ),
                 ),
                 SliverToBoxAdapter(
@@ -317,6 +396,7 @@ class _DashboardHomeContent extends StatelessWidget {
                   child: _ProductCarousel(
                     items: showingItems,
                     cardWidth: cardWidth,
+                    onVisibleIndexChanged: onVisibleMenuChanged,
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 110)),
@@ -340,18 +420,22 @@ class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.iconSize,
     required this.titleSize,
+    required this.isDrawerOpen,
     required this.searchController,
     required this.onMenuTap,
     required this.onCartTap,
     required this.onSearchChanged,
+    required this.onSearchSubmit,
   });
 
   final double iconSize;
   final double titleSize;
+  final bool isDrawerOpen;
   final TextEditingController searchController;
   final VoidCallback onMenuTap;
   final VoidCallback onCartTap;
   final ValueChanged<String> onSearchChanged;
+  final VoidCallback onSearchSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -370,6 +454,18 @@ class _DashboardHeader extends StatelessWidget {
                   color: Colors.black87,
                 ),
               ),
+              if (isDrawerOpen)
+                const Padding(
+                  padding: EdgeInsets.only(left: 4),
+                  child: Text(
+                    'tap again to close',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black45,
+                    ),
+                  ),
+                ),
               const Spacer(),
               IconButton(
                 onPressed: onCartTap,
@@ -397,21 +493,42 @@ class _DashboardHeader extends StatelessWidget {
               color: const Color(0xFFF0F0F0),
               borderRadius: BorderRadius.circular(28),
             ),
-            child: TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search, size: 28, color: Colors.black87),
-                hintText: 'Search',
-                hintStyle: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF848484),
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: IconButton(
+                    onPressed: onSearchSubmit,
+                    icon: const Icon(
+                      Icons.search,
+                      size: 28,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ),
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
-                border: InputBorder.none,
-              ),
+                Expanded(
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: onSearchChanged,
+                    onSubmitted: (_) => onSearchSubmit(),
+                    textInputAction: TextInputAction.search,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'Search',
+                      hintStyle: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF848484),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(vertical: 14),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 18),
@@ -483,10 +600,15 @@ class _CategoryTabs extends StatelessWidget {
 }
 
 class _ProductCarousel extends StatelessWidget {
-  const _ProductCarousel({required this.items, required this.cardWidth});
+  const _ProductCarousel({
+    required this.items,
+    required this.cardWidth,
+    required this.onVisibleIndexChanged,
+  });
 
   final List<_FoodItem> items;
   final double cardWidth;
+  final ValueChanged<int> onVisibleIndexChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -527,13 +649,19 @@ class _ProductCarousel extends StatelessWidget {
         height: metrics.totalHeight + topInset,
         child: Padding(
           padding: EdgeInsets.only(top: topInset),
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(left: 18, right: 8),
+          child: CarouselSlider.builder(
             itemCount: renderItems.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 18),
-            itemBuilder: (_, index) =>
+            options: CarouselOptions(
+              height: metrics.totalHeight,
+              viewportFraction: 0.6,
+              enlargeCenterPage: true,
+              enableInfiniteScroll: false,
+              scrollDirection: Axis.horizontal,
+              onPageChanged: (index, reason) {
+                onVisibleIndexChanged(index);
+              },
+            ),
+            itemBuilder: (_, index, __) =>
                 _FoodCard(item: renderItems[index], width: cardWidth),
           ),
         ),
@@ -553,105 +681,99 @@ class _FoodCard extends StatelessWidget {
     const accent = Color(0xFFFF4D06);
     final metrics = _MenuCardMetrics.fromWidth(width);
     final imageLeft = (width - metrics.imageSize) / 2;
-    return InkWell(
-      onTap: () => ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('${item.name} selected'))),
-      borderRadius: BorderRadius.circular(32),
-      child: SizedBox(
-        width: width,
-        height: metrics.totalHeight,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              top: metrics.bodyTop,
-              left: 0,
-              right: 0,
+    return SizedBox(
+      width: width,
+      height: metrics.totalHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: metrics.bodyTop,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: metrics.bodyHeight,
+              padding: EdgeInsets.fromLTRB(
+                16,
+                metrics.contentTopPadding,
+                16,
+                18,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x11000000),
+                    blurRadius: 18,
+                    offset: Offset(0, 9),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    item.name,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: metrics.nameFont,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    item.price,
+                    style: TextStyle(
+                      fontSize: metrics.priceFont,
+                      fontWeight: FontWeight.w700,
+                      color: accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: imageLeft,
+            child: Hero(
+              tag: item.name,
               child: Container(
-                height: metrics.bodyHeight,
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  metrics.contentTopPadding,
-                  16,
-                  18,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: const [
+                width: metrics.imageSize,
+                height: metrics.imageSize,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x11000000),
-                      blurRadius: 18,
-                      offset: Offset(0, 9),
+                      color: Color(0x22000000),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
                     ),
                   ],
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      item.name,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: metrics.nameFont,
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      item.price,
-                      style: TextStyle(
-                        fontSize: metrics.priceFont,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              left: imageLeft,
-              child: Hero(
-                tag: item.name,
-                child: Container(
-                  width: metrics.imageSize,
-                  height: metrics.imageSize,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0x22000000),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: Image.network(
-                      item.imageUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (_, child, progress) {
-                        if (progress == null) return child;
-                        return const ColoredBox(
-                          color: Color(0xFFF0F0F0),
-                          child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => const ColoredBox(
+                child: ClipOval(
+                  child: Image.network(
+                    item.imageUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) return child;
+                      return const ColoredBox(
                         color: Color(0xFFF0F0F0),
-                        child: Center(child: Icon(Icons.broken_image_outlined)),
-                      ),
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => const ColoredBox(
+                      color: Color(0xFFF0F0F0),
+                      child: Center(child: Icon(Icons.broken_image_outlined)),
                     ),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -678,19 +800,30 @@ class _BottomNavBar extends StatelessWidget {
               onTap: () => onSelect(0),
             ),
             _BottomNavIcon(
-              icon: Icons.favorite_border_rounded,
-              active: selectedIndex == 1,
-              onTap: () => onSelect(1),
-            ),
-            _BottomNavIcon(
               icon: Icons.person_outline_rounded,
-              active: selectedIndex == 2,
-              onTap: () => onSelect(2),
+              active: selectedIndex == 1,
+              onTap: () async {
+                onSelect(1);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CustomerProfilePage()),
+                );
+                onSelect(0);
+              },
             ),
             _BottomNavIcon(
               icon: Icons.history_rounded,
-              active: selectedIndex == 3,
-              onTap: () => onSelect(3),
+              active: selectedIndex == 2,
+              onTap: () async {
+                onSelect(2);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CustomerOrderHistoryPage(),
+                  ),
+                );
+                onSelect(0);
+              },
             ),
           ],
         ),
@@ -767,17 +900,27 @@ class _SideDrawer extends StatelessWidget {
               _DrawerAction(
                 title: 'Profile',
                 icon: Icons.person_outline_rounded,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerProfilePage())),
               ),
-              _DrawerAction(title: 'orders', icon: Icons.sync_alt_rounded),
+              _DrawerAction(
+                title: 'orders', 
+                icon: Icons.sync_alt_rounded,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerOrderHistoryPage())),
+              ),
               _DrawerAction(
                 title: 'offer and promo',
                 icon: Icons.local_offer_outlined,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerOffersPage())),
               ),
               _DrawerAction(
                 title: 'Privacy policy',
                 icon: Icons.chat_bubble_outline_rounded,
               ),
-              _DrawerAction(title: 'Security', icon: Icons.shield_outlined),
+              _DrawerAction(
+                title: 'Security', 
+                icon: Icons.shield_outlined,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoInternetPage())),
+              ),
               const Spacer(),
               InkWell(
                 onTap: onClose,
@@ -808,15 +951,16 @@ class _SideDrawer extends StatelessWidget {
 }
 
 class _DrawerAction extends StatelessWidget {
-  const _DrawerAction({required this.title, required this.icon});
+  const _DrawerAction({required this.title, required this.icon, this.onTap});
 
   final String title;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => ScaffoldMessenger.of(
+      onTap: onTap ?? () => ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('$title tapped'))),
       child: Padding(
@@ -840,93 +984,6 @@ class _DrawerAction extends StatelessWidget {
             const SizedBox(height: 10),
             Container(height: 1, color: Colors.white.withValues(alpha: 0.28)),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OrdersPage extends StatelessWidget {
-  const _OrdersPage();
-
-  @override
-  Widget build(BuildContext context) {
-    const bg = Color(0xFFE7E7E7);
-    const accent = Color(0xFFFF4D06);
-    return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Orders',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                ],
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.shopping_cart_outlined,
-                size: 106,
-                color: Color(0xFFBDBDBD),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'No orders yet',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF111111),
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Hit the orange button down\nbelow to Create an order',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF8B8B8B),
-                  height: 1.4,
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  child: const Text('Start ordering'),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
         ),
       ),
     );
