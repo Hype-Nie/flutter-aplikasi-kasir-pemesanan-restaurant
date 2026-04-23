@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'customer_menu_results_page.dart';
 import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
+import 'package:restaurant/features/customer/cart/presentation/pages/customer_cart_page.dart';
 
 import '../bloc/customer_dashboard_bloc.dart';
 import '../bloc/customer_dashboard_event.dart';
@@ -242,7 +243,7 @@ class _DashboardScreenState extends State<_DashboardScreen> {
                         onCartTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const _OrdersPage(),
+                              builder: (_) => const CustomerCartPage(),
                             ),
                           );
                         },
@@ -939,93 +940,6 @@ class _DrawerAction extends StatelessWidget {
             const SizedBox(height: 10),
             Container(height: 1, color: Colors.white.withValues(alpha: 0.28)),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OrdersPage extends StatelessWidget {
-  const _OrdersPage();
-
-  @override
-  Widget build(BuildContext context) {
-    const bg = Color(0xFFE7E7E7);
-    const accent = Color(0xFFFF4D06);
-    return Scaffold(
-      backgroundColor: bg,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Orders',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 40),
-                ],
-              ),
-              const Spacer(),
-              const Icon(
-                Icons.shopping_cart_outlined,
-                size: 106,
-                color: Color(0xFFBDBDBD),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'No orders yet',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF111111),
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Hit the orange button down\nbelow to Create an order',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF8B8B8B),
-                  height: 1.4,
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  child: const Text('Start ordering'),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
         ),
       ),
     );
