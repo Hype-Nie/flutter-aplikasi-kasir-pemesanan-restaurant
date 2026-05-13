@@ -1,18 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/cashier_order_status_management_bloc.dart';
-import '../bloc/cashier_order_status_management_event.dart';
+import '../riverpod/cashier_order_status_management_provider.dart';
 
-class CashierOrderStatusManagementPage extends StatelessWidget {
+class CashierOrderStatusManagementPage extends ConsumerStatefulWidget {
   const CashierOrderStatusManagementPage({super.key});
 
   @override
+  ConsumerState<CashierOrderStatusManagementPage> createState() =>
+      _CashierOrderStatusManagementPageState();
+}
+
+class _CashierOrderStatusManagementPageState
+    extends ConsumerState<CashierOrderStatusManagementPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(cashierOrderStatusManagementProvider.notifier).started();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CashierOrderStatusManagementBloc()..add(const CashierOrderStatusManagementStarted()),
-      child: const _CashierOrderStatusManagementView(),
-    );
+    ref.watch(cashierOrderStatusManagementProvider);
+    return const _CashierOrderStatusManagementView();
   }
 }
 
@@ -21,8 +34,6 @@ class _CashierOrderStatusManagementView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.shrink(),
-    );
+    return const Scaffold(body: SizedBox.shrink());
   }
 }

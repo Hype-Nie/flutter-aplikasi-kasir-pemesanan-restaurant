@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/customer_payment_gateway_bloc.dart';
-import '../bloc/customer_payment_gateway_event.dart';
+import '../providers/customer_payment_gateway_provider.dart';
 
-class CustomerPaymentGatewayPage extends StatelessWidget {
+class CustomerPaymentGatewayPage extends ConsumerWidget {
   const CustomerPaymentGatewayPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CustomerPaymentGatewayBloc()..add(const CustomerPaymentGatewayStarted()),
-      child: const _CustomerPaymentGatewayView(),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(customerPaymentGatewayProvider);
+    return const _CustomerPaymentGatewayView();
   }
 }
 
@@ -21,8 +18,6 @@ class _CustomerPaymentGatewayView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.shrink(),
-    );
+    return const Scaffold(body: SizedBox.shrink());
   }
 }

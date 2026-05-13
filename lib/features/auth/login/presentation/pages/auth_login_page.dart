@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/features/cashier/dashboard/presentation/pages/cashier_dashboard_page.dart';
 import 'package:restaurant/features/customer/dashboard/presentation/pages/customer_dashboard_page.dart';
 
-import '../bloc/auth_login_bloc.dart';
-import '../bloc/auth_login_event.dart';
+import '../riverpod/auth_login_provider.dart';
 
-class AuthLoginPage extends StatelessWidget {
+class AuthLoginPage extends ConsumerStatefulWidget {
   const AuthLoginPage({super.key});
 
   @override
+  ConsumerState<AuthLoginPage> createState() => _AuthLoginPageState();
+}
+
+class _AuthLoginPageState extends ConsumerState<AuthLoginPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(authLoginProvider.notifier).started();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AuthLoginBloc()..add(const AuthLoginStarted()),
-      child: const _AuthLoginView(),
-    );
+    ref.watch(authLoginProvider);
+    return const _AuthLoginView();
   }
 }
 
@@ -327,8 +338,9 @@ class _LoginForm extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(24, 22, 24, 32),
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(28)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,

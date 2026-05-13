@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/customer_change_password_bloc.dart';
-import '../bloc/customer_change_password_event.dart';
+import '../providers/customer_change_password_provider.dart';
 
-class CustomerChangePasswordPage extends StatelessWidget {
+class CustomerChangePasswordPage extends ConsumerWidget {
   const CustomerChangePasswordPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CustomerChangePasswordBloc()..add(const CustomerChangePasswordStarted()),
-      child: const _CustomerChangePasswordView(),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(customerChangePasswordProvider);
+    return const _CustomerChangePasswordView();
   }
 }
 
@@ -21,8 +18,6 @@ class _CustomerChangePasswordView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.shrink(),
-    );
+    return const Scaffold(body: SizedBox.shrink());
   }
 }
