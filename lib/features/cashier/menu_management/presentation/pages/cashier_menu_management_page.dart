@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/cashier_menu_management_bloc.dart';
-import '../bloc/cashier_menu_management_event.dart';
+import '../riverpod/cashier_menu_management_provider.dart';
 
-class CashierMenuManagementPage extends StatelessWidget {
+class CashierMenuManagementPage extends ConsumerStatefulWidget {
   const CashierMenuManagementPage({super.key});
 
   @override
+  ConsumerState<CashierMenuManagementPage> createState() =>
+      _CashierMenuManagementPageState();
+}
+
+class _CashierMenuManagementPageState
+    extends ConsumerState<CashierMenuManagementPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(cashierMenuManagementProvider.notifier).started();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          CashierMenuManagementBloc()..add(const CashierMenuManagementStarted()),
-      child: const _CashierMenuManagementView(),
-    );
+    ref.watch(cashierMenuManagementProvider);
+    return const _CashierMenuManagementView();
   }
 }
 
@@ -73,10 +85,15 @@ class _CashierMenuManagementViewState
                 child: TextField(
                   controller: _searchController,
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                   decoration: const InputDecoration(
-                    prefixIcon:
-                        Icon(Icons.search, size: 24, color: Colors.black54),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      size: 24,
+                      color: Colors.black54,
+                    ),
                     hintText: 'Search menu...',
                     hintStyle: TextStyle(
                       fontSize: 14,
@@ -108,7 +125,9 @@ class _CashierMenuManagementViewState
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeOut,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: active ? _accent : Colors.white,
                           borderRadius: BorderRadius.circular(20),
@@ -121,8 +140,9 @@ class _CashierMenuManagementViewState
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color:
-                                active ? Colors.white : const Color(0xFF8B8B8B),
+                            color: active
+                                ? Colors.white
+                                : const Color(0xFF8B8B8B),
                           ),
                         ),
                       ),
@@ -135,9 +155,7 @@ class _CashierMenuManagementViewState
             const SizedBox(height: 14),
 
             // --- Menu grid ---
-            Expanded(
-              child: _MenuGrid(accent: _accent),
-            ),
+            Expanded(child: _MenuGrid(accent: _accent)),
           ],
         ),
       ),
@@ -151,8 +169,11 @@ class _CashierMenuManagementViewState
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                size: 20, color: Colors.black87),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 20,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(width: 4),
           const Text(
@@ -171,8 +192,7 @@ class _CashierMenuManagementViewState
             ),
             child: IconButton(
               onPressed: () {},
-              icon: Icon(Icons.filter_list_rounded,
-                  size: 22, color: _accent),
+              icon: Icon(Icons.filter_list_rounded, size: 22, color: _accent),
             ),
           ),
         ],
@@ -278,8 +298,11 @@ class _MenuCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Center(
-                      child: Icon(Icons.restaurant_rounded,
-                          size: 40, color: accent.withValues(alpha: 0.30)),
+                      child: Icon(
+                        Icons.restaurant_rounded,
+                        size: 40,
+                        color: accent.withValues(alpha: 0.30),
+                      ),
                     ),
                   ),
                 ),
@@ -326,8 +349,10 @@ class _MenuCard extends StatelessWidget {
 
                 // Category tag
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF0F0F0),
                     borderRadius: BorderRadius.circular(8),
@@ -402,8 +427,11 @@ class _AddMenuSheet extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.add_photo_alternate_outlined,
-                    size: 36, color: _accent.withValues(alpha: 0.50)),
+                Icon(
+                  Icons.add_photo_alternate_outlined,
+                  size: 36,
+                  color: _accent.withValues(alpha: 0.50),
+                ),
                 const SizedBox(height: 6),
                 Text(
                   'Upload Photo',
@@ -473,8 +501,10 @@ class _SheetTextField extends StatelessWidget {
         ),
         filled: true,
         fillColor: const Color(0xFFF5F5F5),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

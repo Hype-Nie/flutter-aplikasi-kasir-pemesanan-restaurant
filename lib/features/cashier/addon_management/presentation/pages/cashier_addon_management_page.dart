@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/cashier_addon_management_bloc.dart';
-import '../bloc/cashier_addon_management_event.dart';
+import '../riverpod/cashier_addon_management_provider.dart';
 
-class CashierAddonManagementPage extends StatelessWidget {
+class CashierAddonManagementPage extends ConsumerStatefulWidget {
   const CashierAddonManagementPage({super.key});
 
   @override
+  ConsumerState<CashierAddonManagementPage> createState() =>
+      _CashierAddonManagementPageState();
+}
+
+class _CashierAddonManagementPageState
+    extends ConsumerState<CashierAddonManagementPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(cashierAddonManagementProvider.notifier).started();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CashierAddonManagementBloc()
-        ..add(const CashierAddonManagementStarted()),
-      child: const _CashierAddonManagementView(),
-    );
+    ref.watch(cashierAddonManagementProvider);
+    return const _CashierAddonManagementView();
   }
 }
 
@@ -103,13 +115,14 @@ class _CashierAddonManagementViewState
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 220),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: active ? _accent : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color:
-                                active ? _accent : const Color(0xFFD0D0D0),
+                            color: active ? _accent : const Color(0xFFD0D0D0),
                           ),
                         ),
                         child: Text(
@@ -138,17 +151,19 @@ class _CashierAddonManagementViewState
                   final filtered = _selectedTab == 0
                       ? _addons
                       : _addons
-                          .where((a) => a.type == _tabs[_selectedTab])
-                          .toList();
+                            .where((a) => a.type == _tabs[_selectedTab])
+                            .toList();
 
                   if (filtered.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.inbox_rounded,
-                              size: 64,
-                              color: _accent.withValues(alpha: 0.25)),
+                          Icon(
+                            Icons.inbox_rounded,
+                            size: 64,
+                            color: _accent.withValues(alpha: 0.25),
+                          ),
                           const SizedBox(height: 12),
                           const Text(
                             'No addons found',
@@ -168,12 +183,10 @@ class _CashierAddonManagementViewState
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (_, i) {
-                      final delay =
-                          (i / filtered.length).clamp(0.0, 1.0);
+                      final delay = (i / filtered.length).clamp(0.0, 1.0);
                       final curved = CurvedAnimation(
                         parent: _animCtrl,
-                        curve: Interval(delay, 1.0,
-                            curve: Curves.easeOutCubic),
+                        curve: Interval(delay, 1.0, curve: Curves.easeOutCubic),
                       );
                       return FadeTransition(
                         opacity: curved,
@@ -182,8 +195,7 @@ class _CashierAddonManagementViewState
                             begin: const Offset(0, 0.12),
                             end: Offset.zero,
                           ).animate(curved),
-                          child:
-                              _AddonTile(item: filtered[i], accent: _accent),
+                          child: _AddonTile(item: filtered[i], accent: _accent),
                         ),
                       );
                     },
@@ -204,8 +216,11 @@ class _CashierAddonManagementViewState
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                size: 20, color: Colors.black87),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 20,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(width: 4),
           const Text(
@@ -255,11 +270,14 @@ class _CashierAddonManagementViewState
               ),
             ),
             const SizedBox(height: 20),
-            const Text('Add New Addon',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF121212))),
+            const Text(
+              'Add New Addon',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF121212),
+              ),
+            ),
             const SizedBox(height: 22),
             _SheetTextField(label: 'Addon Name'),
             const SizedBox(height: 12),
@@ -277,11 +295,13 @@ class _CashierAddonManagementViewState
                   backgroundColor: _accent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22)),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
                 ),
-                child: const Text('Save Addon',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                child: const Text(
+                  'Save Addon',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],
@@ -334,7 +354,10 @@ class _AddonTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
+            color: Color(0x0A000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -356,23 +379,31 @@ class _AddonTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.name,
-                    style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF121212))),
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF121212),
+                  ),
+                ),
                 const SizedBox(height: 3),
                 Row(
                   children: [
-                    Text(item.price,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: accent)),
+                    Text(
+                      item.price,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                      ),
+                    ),
                     const SizedBox(width: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: _typeColor.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
@@ -380,9 +411,10 @@ class _AddonTile extends StatelessWidget {
                       child: Text(
                         item.type,
                         style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: _typeColor),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: _typeColor,
+                        ),
                       ),
                     ),
                   ],
@@ -436,13 +468,16 @@ class _SheetTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF8B8B8B)),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF8B8B8B),
+        ),
         filled: true,
         fillColor: const Color(0xFFF5F5F5),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

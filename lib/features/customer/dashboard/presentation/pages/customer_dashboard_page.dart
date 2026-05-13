@@ -1,6 +1,6 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
 import 'package:restaurant/features/customer/search/presentation/pages/customer_search_page.dart';
@@ -11,19 +11,15 @@ import 'package:restaurant/features/customer/order_history/presentation/pages/cu
 import 'package:restaurant/shared/pages/no_internet_page.dart';
 import 'customer_offers_page.dart';
 
-import '../bloc/customer_dashboard_bloc.dart';
-import '../bloc/customer_dashboard_event.dart';
+import '../providers/customer_dashboard_provider.dart';
 
-class CustomerDashboardPage extends StatelessWidget {
+class CustomerDashboardPage extends ConsumerWidget {
   const CustomerDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          CustomerDashboardBloc()..add(const CustomerDashboardStarted()),
-      child: const _CustomerDashboardView(),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(customerDashboardProvider);
+    return const _CustomerDashboardView();
   }
 }
 
@@ -806,7 +802,9 @@ class _BottomNavBar extends StatelessWidget {
                 onSelect(1);
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CustomerProfilePage()),
+                  MaterialPageRoute(
+                    builder: (_) => const CustomerProfilePage(),
+                  ),
                 );
                 onSelect(0);
               },
@@ -900,26 +898,42 @@ class _SideDrawer extends StatelessWidget {
               _DrawerAction(
                 title: 'Profile',
                 icon: Icons.person_outline_rounded,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerProfilePage())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CustomerProfilePage(),
+                  ),
+                ),
               ),
               _DrawerAction(
-                title: 'orders', 
+                title: 'orders',
                 icon: Icons.sync_alt_rounded,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerOrderHistoryPage())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CustomerOrderHistoryPage(),
+                  ),
+                ),
               ),
               _DrawerAction(
                 title: 'offer and promo',
                 icon: Icons.local_offer_outlined,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerOffersPage())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CustomerOffersPage()),
+                ),
               ),
               _DrawerAction(
                 title: 'Privacy policy',
                 icon: Icons.chat_bubble_outline_rounded,
               ),
               _DrawerAction(
-                title: 'Security', 
+                title: 'Security',
                 icon: Icons.shield_outlined,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NoInternetPage())),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NoInternetPage()),
+                ),
               ),
               const Spacer(),
               InkWell(
@@ -960,9 +974,11 @@ class _DrawerAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap ?? () => ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$title tapped'))),
+      onTap:
+          onTap ??
+          () => ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('$title tapped'))),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(

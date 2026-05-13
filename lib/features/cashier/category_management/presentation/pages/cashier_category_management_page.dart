@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/cashier_category_management_bloc.dart';
-import '../bloc/cashier_category_management_event.dart';
+import '../riverpod/cashier_category_management_provider.dart';
 
-class CashierCategoryManagementPage extends StatelessWidget {
+class CashierCategoryManagementPage extends ConsumerStatefulWidget {
   const CashierCategoryManagementPage({super.key});
 
   @override
+  ConsumerState<CashierCategoryManagementPage> createState() =>
+      _CashierCategoryManagementPageState();
+}
+
+class _CashierCategoryManagementPageState
+    extends ConsumerState<CashierCategoryManagementPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(cashierCategoryManagementProvider.notifier).started();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CashierCategoryManagementBloc()
-        ..add(const CashierCategoryManagementStarted()),
-      child: const _CashierCategoryManagementView(),
-    );
+    ref.watch(cashierCategoryManagementProvider);
+    return const _CashierCategoryManagementView();
   }
 }
 
@@ -70,9 +82,10 @@ class _CashierCategoryManagementViewState
           onPressed: () => _showAddCategorySheet(context),
           backgroundColor: _accent,
           icon: const Icon(Icons.add_rounded, color: Colors.white),
-          label: const Text('Add',
-              style:
-                  TextStyle(fontWeight: FontWeight.w700, color: Colors.white)),
+          label: const Text(
+            'Add',
+            style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+          ),
         ),
       ),
       body: SafeArea(
@@ -87,17 +100,22 @@ class _CashierCategoryManagementViewState
               child: Row(
                 children: [
                   _StatChip(
-                      label: 'Total', value: '${_categories.length}', color: _accent),
+                    label: 'Total',
+                    value: '${_categories.length}',
+                    color: _accent,
+                  ),
                   const SizedBox(width: 10),
                   _StatChip(
                     label: 'Active',
-                    value: '${_categories.where((c) => c.itemCount > 0).length}',
+                    value:
+                        '${_categories.where((c) => c.itemCount > 0).length}',
                     color: const Color(0xFF2ECC71),
                   ),
                   const SizedBox(width: 10),
                   _StatChip(
                     label: 'Empty',
-                    value: '${_categories.where((c) => c.itemCount == 0).length}',
+                    value:
+                        '${_categories.where((c) => c.itemCount == 0).length}',
                     color: const Color(0xFFF39C12),
                   ),
                 ],
@@ -154,8 +172,11 @@ class _CashierCategoryManagementViewState
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                size: 20, color: Colors.black87),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 20,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(width: 4),
           const Text(
@@ -197,9 +218,10 @@ class _CashierCategoryManagementViewState
             const Text(
               'Add New Category',
               style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF121212)),
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF121212),
+              ),
             ),
             const SizedBox(height: 22),
             _SheetTextField(label: 'Category Name'),
@@ -216,11 +238,13 @@ class _CashierCategoryManagementViewState
                   backgroundColor: _accent,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(22)),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
                 ),
-                child: const Text('Save Category',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                child: const Text(
+                  'Save Category',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],
@@ -233,8 +257,11 @@ class _CashierCategoryManagementViewState
 // ---------- Stat Chip ----------
 
 class _StatChip extends StatelessWidget {
-  const _StatChip(
-      {required this.label, required this.value, required this.color});
+  const _StatChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   final String label;
   final String value;
@@ -252,15 +279,23 @@ class _StatChip extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text(value,
-                style: TextStyle(
-                    fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: color.withValues(alpha: 0.80))),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color.withValues(alpha: 0.80),
+              ),
+            ),
           ],
         ),
       ),
@@ -292,7 +327,10 @@ class _CategoryTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
+            color: Color(0x0A000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -314,18 +352,22 @@ class _CategoryTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.name,
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF121212))),
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF121212),
+                  ),
+                ),
                 const SizedBox(height: 3),
                 Text(
                   '${item.itemCount} menu items',
                   style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF8B8B8B)),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF8B8B8B),
+                  ),
                 ),
               ],
             ),
@@ -334,13 +376,19 @@ class _CategoryTile extends StatelessWidget {
           // Actions
           IconButton(
             onPressed: onEdit,
-            icon: Icon(Icons.edit_rounded,
-                size: 18, color: accent.withValues(alpha: 0.60)),
+            icon: Icon(
+              Icons.edit_rounded,
+              size: 18,
+              color: accent.withValues(alpha: 0.60),
+            ),
           ),
           IconButton(
             onPressed: onDelete,
-            icon: Icon(Icons.delete_outline_rounded,
-                size: 18, color: const Color(0xFFE74C3C).withValues(alpha: 0.60)),
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              size: 18,
+              color: const Color(0xFFE74C3C).withValues(alpha: 0.60),
+            ),
           ),
         ],
       ),
@@ -362,11 +410,16 @@ class _SheetTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF8B8B8B)),
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF8B8B8B),
+        ),
         filled: true,
         fillColor: const Color(0xFFF5F5F5),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

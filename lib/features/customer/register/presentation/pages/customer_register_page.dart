@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/customer_register_bloc.dart';
-import '../bloc/customer_register_event.dart';
+import '../providers/customer_register_provider.dart';
 
-class CustomerRegisterPage extends StatelessWidget {
+class CustomerRegisterPage extends ConsumerWidget {
   const CustomerRegisterPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CustomerRegisterBloc()..add(const CustomerRegisterStarted()),
-      child: const _CustomerRegisterView(),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(customerRegisterProvider);
+    return const _CustomerRegisterView();
   }
 }
 
@@ -21,8 +18,6 @@ class _CustomerRegisterView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.shrink(),
-    );
+    return const Scaffold(body: SizedBox.shrink());
   }
 }

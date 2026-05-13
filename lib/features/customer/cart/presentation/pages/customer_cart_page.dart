@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../checkout/presentation/pages/customer_checkout_page.dart';
-import '../bloc/customer_cart_bloc.dart';
-import '../bloc/customer_cart_event.dart';
-import '../bloc/customer_cart_state.dart';
+import '../providers/customer_cart_provider.dart';
 import '../../domain/entities/cart_item.dart';
 
-class CustomerCartPage extends StatelessWidget {
+class CustomerCartPage extends ConsumerWidget {
   const CustomerCartPage({super.key});
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CustomerCartBloc()..add(const CustomerCartStarted()),
-      child: const _CustomerCartView(),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const _CustomerCartView();
   }
 }
 
-class _CustomerCartView extends StatelessWidget {
+class _CustomerCartView extends ConsumerWidget {
   const _CustomerCartView();
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const accent = Color(0xFFFF460A);
     final size = MediaQuery.sizeOf(context);
+    final state = ref.watch(customerCartProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F8),
       appBar: AppBar(
@@ -47,86 +43,92 @@ class _CustomerCartView extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: BlocBuilder<CustomerCartBloc, CustomerCartState>(
-        builder: (context, state) {
-          if (state.status == CustomerCartStatus.loading)
-            return const Center(
-              child: CircularProgressIndicator(color: accent),
-            );
-          if (state.items.isEmpty) return const _EmptyCartView(accent: accent);
-          return Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 8, bottom: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.arrow_circle_left_outlined,
-                      size: 20,
-                      color: Colors.black54,
+      body: switch (state.status) {
+        CustomerCartStatus.loading => const Center(
+          child: CircularProgressIndicator(color: accent),
+        ),
+        _ when state.items.isEmpty => const _EmptyCartView(accent: accent),
+        _ => Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 8, bottom: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.arrow_circle_left_outlined,
+                    size: 20,
+                    color: Colors.black54,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'swipe on an item to delete',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w400,
                     ),
-                    SizedBox(width: 8),
-                    const Text(
-                      'swipe on an item to delete',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.black,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  itemCount: state.items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
-                  itemBuilder: (context, index) {
-                    final item = state.items[index];
-                    return _CartItemTile(
-                      key: ValueKey(item.id),
-                      item: item,
-                      accent: accent,
-                    );
-                  },
-                ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: state.items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 14),
+                itemBuilder: (context, index) {
+                  final item = state.items[index];
+                  return _CartItemTile(
+                    key: ValueKey(item.id),
+                    item: item,
+                    accent: accent,
+                    onRemove: () => ref
+                        .read(customerCartProvider.notifier)
+                        .removeItem(item.id),
+                    onDec: () => ref
+                        .read(customerCartProvider.notifier)
+                        .updateItem(item.id, item.quantity - 1),
+                    onInc: () => ref
+                        .read(customerCartProvider.notifier)
+                        .updateItem(item.id, item.quantity + 1),
+                  );
+                },
               ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(24, 16, 24, size.height * 0.04),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 64,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CustomerCheckoutPage(),
-                      ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(24, 16, 24, size.height * 0.04),
+              child: SizedBox(
+                width: double.infinity,
+                height: 64,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CustomerCheckoutPage(),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 0,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
                     ),
-                    child: const Text(
-                      'Complete order',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Complete order',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
-            ],
-          );
-        },
-      ),
+            ),
+          ],
+        ),
+      },
     );
   }
 }
@@ -195,15 +197,23 @@ class _EmptyCartView extends StatelessWidget {
 class _CartItemTile extends StatelessWidget {
   final CartItem item;
   final Color accent;
-  const _CartItemTile({super.key, required this.item, required this.accent});
+  final VoidCallback onRemove;
+  final VoidCallback onDec;
+  final VoidCallback onInc;
+  const _CartItemTile({
+    super.key,
+    required this.item,
+    required this.accent,
+    required this.onRemove,
+    required this.onDec,
+    required this.onInc,
+  });
   @override
   Widget build(BuildContext context) {
     return Dismissible(
       key: key!,
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => context.read<CustomerCartBloc>().add(
-        CustomerCartItemRemoved(item.id),
-      ),
+      onDismissed: (_) => onRemove(),
       background: Container(
         alignment: Alignment.centerRight,
         child: Row(
@@ -276,12 +286,8 @@ class _CartItemTile extends StatelessWidget {
             _QtyControl(
               qty: item.quantity,
               accent: accent,
-              onDec: () => context.read<CustomerCartBloc>().add(
-                CustomerCartItemUpdated(item.id, item.quantity - 1),
-              ),
-              onInc: () => context.read<CustomerCartBloc>().add(
-                CustomerCartItemUpdated(item.id, item.quantity + 1),
-              ),
+              onDec: onDec,
+              onInc: onInc,
             ),
           ],
         ),

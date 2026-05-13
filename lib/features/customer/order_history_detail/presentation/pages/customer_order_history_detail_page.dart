@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/customer_order_history_detail_bloc.dart';
-import '../bloc/customer_order_history_detail_event.dart';
+import '../providers/customer_order_history_detail_provider.dart';
 
-class CustomerOrderHistoryDetailPage extends StatelessWidget {
+class CustomerOrderHistoryDetailPage extends ConsumerWidget {
   const CustomerOrderHistoryDetailPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CustomerOrderHistoryDetailBloc()..add(const CustomerOrderHistoryDetailStarted()),
-      child: const _CustomerOrderHistoryDetailView(),
-    );
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(customerOrderHistoryDetailProvider);
+    return const _CustomerOrderHistoryDetailView();
   }
 }
 
@@ -21,8 +18,6 @@ class _CustomerOrderHistoryDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.shrink(),
-    );
+    return const Scaffold(body: SizedBox.shrink());
   }
 }

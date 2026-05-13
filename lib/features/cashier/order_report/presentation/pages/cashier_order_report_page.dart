@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/cashier_order_report_bloc.dart';
-import '../bloc/cashier_order_report_event.dart';
+import '../riverpod/cashier_order_report_provider.dart';
 
-class CashierOrderReportPage extends StatelessWidget {
+class CashierOrderReportPage extends ConsumerStatefulWidget {
   const CashierOrderReportPage({super.key});
 
   @override
+  ConsumerState<CashierOrderReportPage> createState() =>
+      _CashierOrderReportPageState();
+}
+
+class _CashierOrderReportPageState
+    extends ConsumerState<CashierOrderReportPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(cashierOrderReportProvider.notifier).started();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          CashierOrderReportBloc()..add(const CashierOrderReportStarted()),
-      child: const _CashierOrderReportView(),
-    );
+    ref.watch(cashierOrderReportProvider);
+    return const _CashierOrderReportView();
   }
 }
 
@@ -84,8 +96,7 @@ class _CashierOrderReportViewState extends State<_CashierOrderReportView>
                               duration: const Duration(milliseconds: 220),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
-                                color:
-                                    active ? _accent : Colors.transparent,
+                                color: active ? _accent : Colors.transparent,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Text(
@@ -227,8 +238,11 @@ class _CashierOrderReportViewState extends State<_CashierOrderReportView>
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                size: 20, color: Colors.black87),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 20,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(width: 4),
           const Text(
@@ -293,8 +307,11 @@ class _RevenueCard extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.20),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.trending_up_rounded,
-                    color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.trending_up_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -362,7 +379,10 @@ class _MiniReportCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
+            color: Color(0x0A000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -377,17 +397,23 @@ class _MiniReportCard extends StatelessWidget {
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(height: 12),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF121212))),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF121212),
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF8B8B8B))),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF8B8B8B),
+            ),
+          ),
         ],
       ),
     );
@@ -410,17 +436,23 @@ class _ChartPlaceholder extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
+            color: Color(0x0A000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Sales Overview',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF121212))),
+          const Text(
+            'Sales Overview',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF121212),
+            ),
+          ),
           const SizedBox(height: 18),
           // Simulated bar chart
           SizedBox(
@@ -438,8 +470,7 @@ class _ChartPlaceholder extends StatelessWidget {
                       children: [
                         TweenAnimationBuilder<double>(
                           tween: Tween(begin: 0, end: heights[i]),
-                          duration:
-                              Duration(milliseconds: 500 + (i * 100)),
+                          duration: Duration(milliseconds: 500 + (i * 100)),
                           curve: Curves.easeOutCubic,
                           builder: (_, value, __) {
                             return Container(
@@ -454,11 +485,14 @@ class _ChartPlaceholder extends StatelessWidget {
                           },
                         ),
                         const SizedBox(height: 8),
-                        Text(days[i],
-                            style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF8B8B8B))),
+                        Text(
+                          days[i],
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF8B8B8B),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -495,7 +529,10 @@ class _TopSellingSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
+            color: Color(0x0A000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -503,14 +540,20 @@ class _TopSellingSection extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('Top Selling',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF121212))),
+              const Text(
+                'Top Selling',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF121212),
+                ),
+              ),
               const Spacer(),
-              Icon(Icons.emoji_events_rounded,
-                  size: 20, color: accent.withValues(alpha: 0.50)),
+              Icon(
+                Icons.emoji_events_rounded,
+                size: 20,
+                color: accent.withValues(alpha: 0.50),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -531,28 +574,38 @@ class _TopSellingSection extends StatelessWidget {
                       child: Text(
                         '${i + 1}',
                         style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: accent),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: accent,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Icon(item.$3,
-                      size: 18, color: accent.withValues(alpha: 0.40)),
+                  Icon(
+                    item.$3,
+                    size: 18,
+                    color: accent.withValues(alpha: 0.40),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(item.$1,
-                        style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF121212))),
-                  ),
-                  Text(item.$2,
+                    child: Text(
+                      item.$1,
                       style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF8B8B8B))),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF121212),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    item.$2,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF8B8B8B),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -585,17 +638,23 @@ class _PaymentBreakdown extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 4)),
+            color: Color(0x0A000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Payment Methods',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF121212))),
+          const Text(
+            'Payment Methods',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF121212),
+            ),
+          ),
           const SizedBox(height: 16),
           // Bar
           ClipRRect(
@@ -640,17 +699,23 @@ class _PaymentBreakdown extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(m.$1,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF121212))),
+                  Text(
+                    m.$1,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF121212),
+                    ),
+                  ),
                   const Spacer(),
-                  Text('${(m.$3 * 100).toInt()}%',
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF8B8B8B))),
+                  Text(
+                    '${(m.$3 * 100).toInt()}%',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF8B8B8B),
+                    ),
+                  ),
                 ],
               ),
             );

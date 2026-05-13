@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/cashier_dashboard_bloc.dart';
-import '../bloc/cashier_dashboard_event.dart';
+import '../riverpod/cashier_dashboard_provider.dart';
 import '../widgets/cashier_bottom_nav_bar.dart';
 import '../widgets/cashier_side_drawer.dart';
 import '../widgets/pages/cashier_home_tab.dart';
@@ -11,16 +10,28 @@ import '../widgets/pages/cashier_incoming_orders_tab.dart';
 import '../widgets/pages/cashier_order_status_tab.dart';
 import '../widgets/pages/cashier_order_history_tab.dart';
 
-class CashierDashboardPage extends StatelessWidget {
+class CashierDashboardPage extends ConsumerStatefulWidget {
   const CashierDashboardPage({super.key});
 
   @override
+  ConsumerState<CashierDashboardPage> createState() =>
+      _CashierDashboardPageState();
+}
+
+class _CashierDashboardPageState extends ConsumerState<CashierDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(cashierDashboardProvider.notifier).started();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) =>
-          CashierDashboardBloc()..add(const CashierDashboardStarted()),
-      child: const _CashierDashboardView(),
-    );
+    ref.watch(cashierDashboardProvider);
+    return const _CashierDashboardView();
   }
 }
 
@@ -58,8 +69,9 @@ class _CashierDashboardViewState extends State<_CashierDashboardView> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark
-          .copyWith(statusBarColor: Colors.transparent),
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
       child: Scaffold(
         backgroundColor: _bg,
         body: LayoutBuilder(
@@ -87,8 +99,7 @@ class _CashierDashboardViewState extends State<_CashierDashboardView> {
                     curve: Curves.easeOutCubic,
                     scale: _drawerOpen ? 0.86 : 1,
                     child: ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(_drawerOpen ? 30 : 0),
+                      borderRadius: BorderRadius.circular(_drawerOpen ? 30 : 0),
                       child: ColoredBox(
                         color: _bg,
                         child: SafeArea(
@@ -101,12 +112,14 @@ class _CashierDashboardViewState extends State<_CashierDashboardView> {
                                     title: _tabLabels[_selectedBottomNav],
                                     accent: _accent,
                                     onMenuTap: () => setState(
-                                        () => _drawerOpen = !_drawerOpen),
+                                      () => _drawerOpen = !_drawerOpen,
+                                    ),
                                   ),
                                   Expanded(
                                     child: AnimatedSwitcher(
-                                      duration:
-                                          const Duration(milliseconds: 280),
+                                      duration: const Duration(
+                                        milliseconds: 280,
+                                      ),
                                       switchInCurve: Curves.easeOutCubic,
                                       switchOutCurve: Curves.easeInCubic,
                                       child: _buildCurrentTab(),
@@ -164,7 +177,11 @@ class _DashboardTopBar extends StatelessWidget {
         children: [
           IconButton(
             onPressed: onMenuTap,
-            icon: const Icon(Icons.menu_rounded, size: 28, color: Colors.black87),
+            icon: const Icon(
+              Icons.menu_rounded,
+              size: 28,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(width: 4),
           Text(
@@ -183,8 +200,11 @@ class _DashboardTopBar extends StatelessWidget {
             ),
             child: IconButton(
               onPressed: () {},
-              icon: Icon(Icons.notifications_none_rounded,
-                  size: 24, color: accent),
+              icon: Icon(
+                Icons.notifications_none_rounded,
+                size: 24,
+                color: accent,
+              ),
             ),
           ),
         ],

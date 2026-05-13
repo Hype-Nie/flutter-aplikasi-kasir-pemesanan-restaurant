@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../bloc/auth_logout_bloc.dart';
-import '../bloc/auth_logout_event.dart';
+import '../riverpod/auth_logout_provider.dart';
 
-class AuthLogoutPage extends StatelessWidget {
+class AuthLogoutPage extends ConsumerStatefulWidget {
   const AuthLogoutPage({super.key});
 
   @override
+  ConsumerState<AuthLogoutPage> createState() => _AuthLogoutPageState();
+}
+
+class _AuthLogoutPageState extends ConsumerState<AuthLogoutPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(authLogoutProvider.notifier).started();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AuthLogoutBloc()..add(const AuthLogoutStarted()),
-      child: const _AuthLogoutView(),
-    );
+    ref.watch(authLogoutProvider);
+    return const _AuthLogoutView();
   }
 }
 
@@ -21,8 +32,6 @@ class _AuthLogoutView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SizedBox.shrink(),
-    );
+    return const Scaffold(body: SizedBox.shrink());
   }
 }
