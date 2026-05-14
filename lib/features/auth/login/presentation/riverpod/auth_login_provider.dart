@@ -1,40 +1,104 @@
+import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/config/strings/auth_strings.dart';
+import 'package:restaurant/core/network/dio_client.dart';
+import 'package:restaurant/core/utils/token_storage.dart';
+import 'package:restaurant/features/auth/domain/entities/user.dart';
 
 enum AuthLoginStatus { initial, loading, success, failure }
 
 class AuthLoginState extends Equatable {
+  final AuthLoginStatus status;
+  final String message;
+  final User? user;
+
   const AuthLoginState({
     this.status = AuthLoginStatus.initial,
     this.message = '',
+    this.user,
   });
 
-  final AuthLoginStatus status;
-  final String message;
-
-  AuthLoginState copyWith({AuthLoginStatus? status, String? message}) {
-    return AuthLoginState(
-      status: status ?? this.status,
-      message: message ?? this.message,
-    );
-  }
+  AuthLoginState copyWith({
+    AuthLoginStatus? status,
+    String? message,
+    User? user,
+  }) =>
+      AuthLoginState(
+        status: status ?? this.status,
+        message: message ?? this.message,
+        user: user ?? this.user,
+      );
 
   @override
-  List<Object?> get props => [status, message];
+  List<Object?> get props => [status, message, user];
 }
 
 class AuthLoginNotifier extends Notifier<AuthLoginState> {
   @override
   AuthLoginState build() => const AuthLoginState();
 
-  void started() {
-    state = state.copyWith(status: AuthLoginStatus.loading);
+  Future<void> login(String email, String password) async {
+    state = state.copyWith(status: AuthLoginStatus.loading, message: '');
 
-    // TODO: Implement feature logic.
-    state = state.copyWith(status: AuthLoginStatus.success);
+    try {
+      final response = await DioClient.instance.post('/api/auth/login',
+          options: Options(contentType: Headers.formUrlEncodedContentType),
+          data: {
+            'email': email,
+            'password': password,
+            'device_token': 'fcm_token_here',
+            'device_type': 'android',
+            'app_version': '1.0.0',
+          });
+
+      final data = response.data as Map<String, dynamic>;
+      final user = User.fromJson(data['user'] as Map<String, dynamic>);
+      final token = data['token'] as String;
+
+      await TokenStorage.saveToken(token);
+      await TokenStorage.saveRole(user.role);
+
+      state = state.copyWith(
+        status: AuthLoginStatus.success,
+        message: AuthStrings.loginSuccess,
+        user: user,
+      );
+    } on DioException catch (e) {
+      final msg = _mapError(e);
+      state = state.copyWith(status: AuthLoginStatus.failure, message: msg);
+    } catch (_) {
+      state = state.copyWith(
+        status: AuthLoginStatus.failure,
+        message: AuthStrings.unexpectedError,
+      );
+    }
+  }
+
+  void reset() => state = const AuthLoginState();
+
+  String _mapError(DioException e) {
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return AuthStrings.networkError;
+    }
+    final data = e.response?.data;
+    if (data is Map) {
+      if (e.response?.statusCode == 422) {
+        final errors = data['errors'];
+        if (errors is Map) {
+          final first = errors.values.first;
+          return first is List ? first.first.toString() : first.toString();
+        }
+      }
+      final message = data['message'];
+      if (message is String && message.isNotEmpty) return message;
+    }
+    if (e.response?.statusCode == 401) return AuthStrings.invalidCredentials;
+    return AuthStrings.unexpectedError;
   }
 }
 
-final authLoginProvider = NotifierProvider<AuthLoginNotifier, AuthLoginState>(
-  AuthLoginNotifier.new,
-);
+final authLoginProvider =
+    NotifierProvider<AuthLoginNotifier, AuthLoginState>(AuthLoginNotifier.new);

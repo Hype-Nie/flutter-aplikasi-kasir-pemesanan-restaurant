@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 
+import 'package:restaurant/features/auth/logout/presentation/pages/auth_logout_page.dart';
 import 'package:restaurant/features/customer/search/presentation/pages/customer_search_page.dart';
 import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
 import 'package:restaurant/features/customer/cart/presentation/pages/customer_cart_page.dart';
@@ -937,7 +938,14 @@ class _SideDrawer extends StatelessWidget {
               ),
               const Spacer(),
               InkWell(
-                onTap: onClose,
+                onTap: () {
+                  onClose();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const AuthLogoutPage()),
+                  );
+                },
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 14),
                   child: Row(

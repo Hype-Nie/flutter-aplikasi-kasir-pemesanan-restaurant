@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/features/auth/login/presentation/pages/auth_login_page.dart';
 
 import '../riverpod/auth_logout_provider.dart';
 
@@ -16,22 +17,26 @@ class _AuthLogoutPageState extends ConsumerState<AuthLogoutPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(authLogoutProvider.notifier).started();
+      ref.read(authLogoutProvider.notifier).logout();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(authLogoutProvider);
-    return const _AuthLogoutView();
-  }
-}
+    ref.listen(authLogoutProvider, (_, next) {
+      if (next.status == AuthLogoutStatus.success) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthLoginPage()),
+          (_) => false,
+        );
+      }
+    });
 
-class _AuthLogoutView extends StatelessWidget {
-  const _AuthLogoutView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: SizedBox.shrink());
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(color: Color(0xFFFF4D06)),
+      ),
+    );
   }
 }
