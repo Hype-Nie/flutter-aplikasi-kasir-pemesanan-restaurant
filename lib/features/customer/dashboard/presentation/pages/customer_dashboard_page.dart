@@ -14,6 +14,7 @@ import 'package:restaurant/shared/pages/no_internet_page.dart';
 import 'customer_offers_page.dart';
 
 import '../providers/customer_dashboard_provider.dart';
+import '../widgets/category_tabs.dart';
 
 class CustomerDashboardPage extends ConsumerWidget {
   const CustomerDashboardPage({super.key});
@@ -34,17 +35,17 @@ class _CustomerDashboardView extends StatelessWidget {
   }
 }
 
-class _DashboardScreen extends StatefulWidget {
+class _DashboardScreen extends ConsumerStatefulWidget {
   const _DashboardScreen();
 
   @override
-  State<_DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<_DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<_DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
   final _searchController = TextEditingController();
 
-  final _categories = const ['Foods', 'Drinks', 'Snacks', 'Sauce'];
+  List<String> _categories = const [];
   final _items = const <_FoodItem>[
     _FoodItem(
       name: 'Veggie tomato mix',
@@ -138,6 +139,14 @@ class _DashboardScreenState extends State<_DashboardScreen> {
   String _query = '';
   bool _drawerOpen = false;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(customerDashboardProvider.notifier).fetchCategories();
+    });
+  }
+
   void _openSearchPage(BuildContext context) {
     final q = _query.trim();
     if (q.isEmpty) {
@@ -192,7 +201,14 @@ class _DashboardScreenState extends State<_DashboardScreen> {
     final cardWidth = (width * 0.56).clamp(216.0, 286.0);
     final iconSize = (width * 0.076).clamp(24.0, 30.0);
 
-    final selectedCategoryName = _categories[_selectedCategory];
+    final dashboardState = ref.watch(customerDashboardProvider);
+    if (dashboardState.categories.isNotEmpty && _categories.isEmpty) {
+      _categories = dashboardState.categories.map((c) => c.name).toList();
+    }
+
+    final selectedCategoryName = _categories.isNotEmpty
+        ? _categories[_selectedCategory]
+        : '';
     final showingItems = _items
         .where((item) {
           final categoryMatch = item.category == selectedCategoryName;
@@ -365,11 +381,13 @@ class _DashboardHomeContent extends StatelessWidget {
                   ),
                 ),
                 SliverToBoxAdapter(
-                  child: _CategoryTabs(
-                    categories: categories,
-                    selectedIndex: selectedCategory,
-                    onSelect: onSelectCategory,
-                  ),
+                  child: categories.isEmpty
+                      ? const ShimmerCategoryTabs()
+                      : CategoryTabs(
+                          categories: categories,
+                          selectedIndex: selectedCategory,
+                          onSelect: onSelectCategory,
+                        ),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
@@ -390,13 +408,38 @@ class _DashboardHomeContent extends StatelessWidget {
                     ),
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: _ProductCarousel(
-                    items: showingItems,
-                    cardWidth: cardWidth,
-                    onVisibleIndexChanged: onVisibleMenuChanged,
+                if (showingItems.isEmpty)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 60),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inventory_2_outlined,
+                              size: 120, color: Color(0xFFC7C7C7)),
+                          SizedBox(height: 24),
+                          Text('No items found',
+                              style: TextStyle(
+                                  fontSize: 28, fontWeight: FontWeight.w700)),
+                          SizedBox(height: 12),
+                          Text('This category has no items.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black54,
+                                  height: 1.4)),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  SliverToBoxAdapter(
+                    child: _ProductCarousel(
+                      items: showingItems,
+                      cardWidth: cardWidth,
+                      onVisibleIndexChanged: onVisibleMenuChanged,
+                    ),
                   ),
-                ),
                 const SliverToBoxAdapter(child: SizedBox(height: 110)),
               ],
             ),
@@ -531,67 +574,6 @@ class _DashboardHeader extends StatelessWidget {
           ),
           const SizedBox(height: 18),
         ],
-      ),
-    );
-  }
-}
-
-class _CategoryTabs extends StatelessWidget {
-  const _CategoryTabs({
-    required this.categories,
-    required this.selectedIndex,
-    required this.onSelect,
-  });
-
-  final List<String> categories;
-  final int selectedIndex;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    const accent = Color(0xFFFF4D06);
-    const muted = Color(0xFFA4A4A4);
-    final width = MediaQuery.sizeOf(context).width;
-    final tabFont = (width * 0.047).clamp(15.0, 18.0);
-    return SizedBox(
-      height: 62,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(left: 18, right: 18),
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 18),
-        itemBuilder: (_, index) {
-          final active = index == selectedIndex;
-          return InkWell(
-            onTap: () => onSelect(index),
-            borderRadius: BorderRadius.circular(12),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: active ? accent : Colors.transparent,
-                    width: 3,
-                  ),
-                ),
-              ),
-              child: Align(
-                alignment: Alignment.center,
-                child: Text(
-                  categories[index],
-                  style: TextStyle(
-                    fontSize: tabFont,
-                    fontWeight: FontWeight.w500,
-                    color: active ? accent : muted,
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
       ),
     );
   }
