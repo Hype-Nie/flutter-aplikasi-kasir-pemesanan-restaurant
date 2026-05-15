@@ -221,6 +221,7 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: bg,
         body: LayoutBuilder(
           builder: (context, constraints) {
