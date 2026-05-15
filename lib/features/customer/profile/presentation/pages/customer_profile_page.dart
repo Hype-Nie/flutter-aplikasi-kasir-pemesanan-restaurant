@@ -1,235 +1,165 @@
 import 'package:flutter/material.dart';
-import '../../../order_history/presentation/pages/customer_order_history_page.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
+
+import '../providers/customer_profile_provider.dart';
+import '../widgets/profile_widgets.dart';
+import 'customer_change_profile_page.dart';
 import 'customer_faq_page.dart';
 import 'customer_privacy_policy_page.dart';
-import 'customer_change_profile_page.dart';
 
-class CustomerProfilePage extends StatelessWidget {
+const _accent = Color(0xFFFF460A);
+const _bg = Color(0xFFF5F5F8);
+
+class CustomerProfilePage extends ConsumerStatefulWidget {
   const CustomerProfilePage({super.key});
 
   @override
+  ConsumerState<CustomerProfilePage> createState() => _CustomerProfilePageState();
+}
+
+class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(customerProfileProvider.notifier).fetchUser();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFFFF460A);
+    final state = ref.watch(customerProfileProvider);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F8),
+      backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: Colors.black,
-            size: 18,
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'My profile',
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: _buildBody(state),
+    );
+  }
+
+  Widget _buildBody(CustomerProfileState state) {
+    if (state.status == CustomerProfileStatus.loading) {
+      return const Center(child: CircularProgressIndicator(color: _accent));
+    }
+    final user = state.user;
+    if (user == null) {
+      return const Center(
+        child: Text('Unable to load profile.',
+            style: TextStyle(color: Colors.black54)),
+      );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          const Text('My profile',
+              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 40),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Personal details',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              TextButton(
+                onPressed: () => _navigate(const CustomerChangeProfilePage()),
+                child: const Text('change',
+                    style: TextStyle(color: _accent, fontSize: 15)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ProfileCard(
+            onTap: () => _navigate(const CustomerChangeProfilePage()),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Personal details',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: user.avatar != null
+                      ? Image.network(user.avatar!,
+                          width: 90, height: 100, fit: BoxFit.cover)
+                      : Container(
+                          width: 90,
+                          height: 100,
+                          color: Colors.grey.shade200,
+                          child: const Icon(Icons.person,
+                              size: 48, color: Colors.grey),
+                        ),
                 ),
-                TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const CustomerChangeProfilePage(),
-                    ),
-                  ),
-                  child: const Text(
-                    'change',
-                    style: TextStyle(color: accent, fontSize: 15),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(user.name,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 4),
+                      Text(user.email,
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black54)),
+                      const Divider(height: 20),
+                      Text(user.phone ?? '-',
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black54)),
+                      const Divider(height: 20),
+                      Text(user.address ?? '-',
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black54),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            _ProfileCard(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CustomerChangeProfilePage(),
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      'https://api.dicebear.com/7.x/avataaars/png?seed=Marvis',
-                      width: 90,
-                      height: 100,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Marvis Ighedosa',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Dosamarvis@gmail.com',
-                          style: TextStyle(fontSize: 13, color: Colors.black54),
-                        ),
-                        Divider(height: 20),
-                        Text(
-                          '+234 9011039271',
-                          style: TextStyle(fontSize: 13, color: Colors.black54),
-                        ),
-                        Divider(height: 20),
-                        Text(
-                          'No 15 uti street off ovie palace road effurun delta state',
-                          style: TextStyle(fontSize: 13, color: Colors.black54),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            _ProfileItem(
+          ),
+          const SizedBox(height: 24),
+          ProfileMenuItem(
               title: 'Orders',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CustomerOrderHistoryPage(),
-                ),
-              ),
-            ),
-            _ProfileItem(
-              title: 'Faq',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CustomerFaqPage()),
-              ),
-            ),
-            _ProfileItem(
+              onTap: () => _navigate(const CustomerOrderHistoryPage())),
+          ProfileMenuItem(
+              title: 'Faq', onTap: () => _navigate(const CustomerFaqPage())),
+          ProfileMenuItem(
               title: 'Privacy Policy',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CustomerPrivacyPolicyPage(),
-                ),
+              onTap: () => _navigate(const CustomerPrivacyPolicyPage())),
+          ProfileMenuItem(title: 'Help', onTap: () {}),
+          const SizedBox(height: 40),
+          SizedBox(
+            width: double.infinity,
+            height: 64,
+            child: ElevatedButton(
+              onPressed: () => _navigate(const CustomerChangeProfilePage()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accent,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+                elevation: 0,
               ),
-            ),
-            _ProfileItem(title: 'Help', onTap: () {}),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 64,
-              child: ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: accent,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Update',
+              child: const Text('Update',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600)),
             ),
-            const SizedBox(height: 24),
-          ],
-        ),
+          ),
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }
-}
 
-class _ProfileCard extends StatelessWidget {
-  final Widget child;
-  final VoidCallback onTap;
-  const _ProfileCard({required this.child, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.01),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileItem extends StatelessWidget {
-  final String title;
-  final VoidCallback onTap;
-  const _ProfileItem({required this.title, required this.onTap});
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 8,
-            ),
-            title: Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            trailing: const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.black,
-            ),
-          ),
-        ),
-      ),
-    );
+  void _navigate(Widget page) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 }

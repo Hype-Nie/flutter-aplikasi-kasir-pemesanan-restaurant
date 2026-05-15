@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/config/strings/auth_strings.dart';
 import 'package:restaurant/core/network/dio_client.dart';
 import 'package:restaurant/core/utils/token_storage.dart';
+import 'package:restaurant/features/auth/domain/entities/user.dart';
 
 enum AuthRegisterStatus { initial, loading, success, failure }
 
@@ -61,8 +62,10 @@ class AuthRegisterNotifier extends Notifier<AuthRegisterState> {
 
       final data = response.data as Map<String, dynamic>;
       final token = data['token'] as String;
+      final user = User.fromJson(data['user'] as Map<String, dynamic>);
       await TokenStorage.saveToken(token);
       await TokenStorage.saveRole('customer');
+      await TokenStorage.saveUserId(user.id);
 
       state = state.copyWith(
         status: AuthRegisterStatus.success,
