@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 import '../../../checkout/presentation/pages/customer_checkout_page.dart';
 import '../providers/customer_cart_provider.dart';
 import '../../domain/entities/cart_item.dart';
@@ -44,9 +45,7 @@ class _CustomerCartView extends ConsumerWidget {
         centerTitle: true,
       ),
       body: switch (state.status) {
-        CustomerCartStatus.loading => const Center(
-          child: CircularProgressIndicator(color: accent),
-        ),
+        CustomerCartStatus.loading => const ShimmerCartItem(),
         _ when state.items.isEmpty => const _EmptyCartView(accent: accent),
         _ => Column(
           children: [

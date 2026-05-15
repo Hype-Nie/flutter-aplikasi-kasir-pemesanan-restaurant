@@ -4,6 +4,7 @@ import 'package:restaurant/features/customer/order_history/presentation/pages/cu
 
 import '../providers/customer_profile_provider.dart';
 import '../widgets/profile_widgets.dart';
+import '../widgets/shimmer_loading.dart';
 import 'customer_change_profile_page.dart';
 import 'customer_faq_page.dart';
 import 'customer_privacy_policy_page.dart';
@@ -47,7 +48,7 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
 
   Widget _buildBody(CustomerProfileState state) {
     if (state.status == CustomerProfileStatus.loading) {
-      return const Center(child: CircularProgressIndicator(color: _accent));
+      return const ShimmerProfileCard();
     }
     final user = state.user;
     if (user == null) {

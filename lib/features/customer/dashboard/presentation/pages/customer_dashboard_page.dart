@@ -9,6 +9,7 @@ import 'package:restaurant/features/customer/menu_detail/presentation/pages/cust
 import 'package:restaurant/features/customer/cart/presentation/pages/customer_cart_page.dart';
 import 'package:restaurant/features/customer/profile/presentation/pages/customer_profile_page.dart';
 import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
+import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 import 'package:restaurant/shared/pages/no_internet_page.dart';
 import 'customer_offers_page.dart';
 
@@ -754,10 +755,9 @@ class _FoodCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     loadingBuilder: (_, child, progress) {
                       if (progress == null) return child;
-                      return const ColoredBox(
-                        color: Color(0xFFF0F0F0),
-                        child: Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                      return const ShimmerEffect(
+                        child: SizedBox.expand(
+                          child: ColoredBox(color: Color(0xFFE0E0E0)),
                         ),
                       );
                     },
