@@ -1,16 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/features/customer/domain/entities/order.dart';
+import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
-class CustomerOrderHistoryDetailPage extends StatelessWidget {
-  final Map<String, String> order;
+import '../providers/customer_order_history_provider.dart';
+import '../widgets/order_widgets.dart';
+
+const _accent = Color(0xFFFF460A);
+const _bg = Color(0xFFF5F5F8);
+
+class CustomerOrderHistoryDetailPage extends ConsumerStatefulWidget {
+  final Order order;
   const CustomerOrderHistoryDetailPage({super.key, required this.order});
 
   @override
+  ConsumerState<CustomerOrderHistoryDetailPage> createState() =>
+      _CustomerOrderHistoryDetailPageState();
+}
+
+class _CustomerOrderHistoryDetailPageState
+    extends ConsumerState<CustomerOrderHistoryDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref
+          .read(customerOrderHistoryProvider.notifier)
+          .fetchOrderDetail(widget.order.id);
+    });
+  }
+
+  Color _statusColor(String status) {
+    if (status == 'completed') return Colors.green;
+    if (status == 'pending') return Colors.orange;
+    return Colors.red;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFFFF460A);
-    final statusColor = order['status'] == 'Completed' ? Colors.green : (order['status'] == 'Pending' ? Colors.orange : Colors.red);
-    
+    final state = ref.watch(customerOrderHistoryProvider);
+    final order = state.orderDetail ?? widget.order;
+    final statusColor = _statusColor(order.status);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F8),
+      backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -18,92 +51,139 @@ class CustomerOrderHistoryDetailPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Order ${order['id']}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('Order ${order.orderNumber}',
+            style: const TextStyle(
+                color: Colors.black, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
+      body: Builder(builder: (context) {
+        if (state.status == CustomerOrderHistoryStatus.loading) {
+          return _buildShimmer();
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DetailCard(children: [
+                DetailRow(
+                    label: 'Status',
+                    value: order.status[0].toUpperCase() +
+                        order.status.substring(1),
+                    valueColor: statusColor,
+                    isBold: true),
+                const Divider(height: 32),
+                DetailRow(label: 'Order Date', value: order.formattedDate),
+                const Divider(height: 32),
+                DetailRow(label: 'Order ID', value: order.orderNumber),
+                if (order.tableNumber != null) ...[
+                  const Divider(height: 32),
+                  DetailRow(label: 'Table', value: order.tableNumber!),
+                ],
+              ]),
+              const SizedBox(height: 24),
+              const Text('Items',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              DetailCard(children: [
+                const ItemRow(name: 'Veggie tomato mix', qty: '1', price: '1,900'),
+                const Divider(height: 24),
+                const ItemRow(
+                    name: 'Fishwith mix orange', qty: '1', price: '1,900'),
+                const Divider(height: 24),
+                const ItemRow(name: 'Extra Sauce', qty: '1', price: '500'),
+              ]),
+              const SizedBox(height: 24),
+              const Text('Payment Details',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              DetailCard(children: [
+                DetailRow(
+                    label: 'Payment Method',
+                    value: order.paymentMethod ?? '-'),
+                const Divider(height: 32),
+                DetailRow(
+                    label: 'Delivery Method',
+                    value: order.deliveryMethod ?? '-'),
+                const Divider(height: 32),
+                DetailRow(
+                    label: 'Total',
+                    value: order.formattedTotal,
+                    isBold: true,
+                    valueColor: _accent,
+                    fontSize: 18),
+              ]),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                height: 64,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Re-order',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildShimmer() {
+    return ShimmerEffect(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-              child: Column(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Column(
                 children: [
-                  _buildRow('Status', order['status']!, valueColor: statusColor, isBold: true),
-                  const Divider(height: 32),
-                  _buildRow('Order Date', order['date']!),
-                  const Divider(height: 32),
-                  _buildRow('Order ID', order['id']!),
+                  ShimmerBlock(width: double.infinity, height: 18),
+                  SizedBox(height: 24),
+                  ShimmerBlock(width: 200, height: 14),
+                  SizedBox(height: 24),
+                  ShimmerBlock(width: 160, height: 14),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Items', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            const ShimmerBlock(width: 60, height: 22),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-              child: Column(
-                children: [
-                  _buildItem('Veggie tomato mix', '1', 'N1,900'),
-                  const Divider(height: 24),
-                  _buildItem('Fishwith mix orange', '1', 'N1,900'),
-                  const Divider(height: 24),
-                  _buildItem('Extra Sauce', '1', 'N500'),
-                ],
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text('Payment Details', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-              child: Column(
+              child: const Column(
                 children: [
-                  _buildRow('Payment Method', 'Card'),
-                  const Divider(height: 32),
-                  _buildRow('Delivery Method', 'Door delivery'),
-                  const Divider(height: 32),
-                  _buildRow('Total', order['total']!, isBold: true, valueColor: accent, fontSize: 18),
+                  ShimmerBlock(width: double.infinity, height: 16),
+                  SizedBox(height: 20),
+                  ShimmerBlock(width: double.infinity, height: 16),
+                  SizedBox(height: 20),
+                  ShimmerBlock(width: 160, height: 16),
                 ],
-              ),
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity, height: 64,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), elevation: 0),
-                child: const Text('Re-order', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildRow(String label, String value, {Color? valueColor, bool isBold = false, double fontSize = 14}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.black54, fontSize: 14)),
-        Text(value, style: TextStyle(color: valueColor ?? Colors.black, fontWeight: isBold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
-      ],
-    );
-  }
-
-  Widget _buildItem(String name, String qty, String price) {
-    return Row(
-      children: [
-        Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w600))),
-        Text('x$qty', style: const TextStyle(color: Colors.black54)),
-        const SizedBox(width: 16),
-        Text(price, style: const TextStyle(fontWeight: FontWeight.bold)),
-      ],
     );
   }
 }

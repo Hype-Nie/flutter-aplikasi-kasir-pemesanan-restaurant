@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:restaurant/features/auth/logout/presentation/pages/auth_logout_page.dart';
 import '../../../menu_management/presentation/pages/cashier_menu_management_page.dart';
 import '../../../category_management/presentation/pages/cashier_category_management_page.dart';
 import '../../../addon_management/presentation/pages/cashier_addon_management_page.dart';
@@ -94,7 +95,11 @@ class CashierSideDrawer extends StatelessWidget {
               InkWell(
                 onTap: () {
                   onClose();
-                  Navigator.of(context).maybePop();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const AuthLogoutPage()),
+                  );
                 },
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 14),

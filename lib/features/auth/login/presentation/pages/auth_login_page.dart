@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/features/auth/login/presentation/widgets/auth_top_panel.dart';
+import 'package:restaurant/features/auth/login/presentation/widgets/login_form.dart';
+import 'package:restaurant/features/auth/login/presentation/widgets/sign_up_form.dart';
+import 'package:restaurant/features/auth/login/presentation/riverpod/auth_login_provider.dart';
+import 'package:restaurant/features/auth/register/presentation/riverpod/auth_register_provider.dart';
 import 'package:restaurant/features/cashier/dashboard/presentation/pages/cashier_dashboard_page.dart';
 import 'package:restaurant/features/customer/dashboard/presentation/pages/customer_dashboard_page.dart';
 
-import '../riverpod/auth_login_provider.dart';
+const _accent = Color(0xFFFF4D06);
+const _bg = Color(0xFFE8E8E8);
 
 class AuthLoginPage extends ConsumerStatefulWidget {
   const AuthLoginPage({super.key});
@@ -19,25 +25,23 @@ class _AuthLoginPageState extends ConsumerState<AuthLoginPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(authLoginProvider.notifier).started();
+      ref.read(authLoginProvider.notifier).reset();
+      ref.read(authRegisterProvider.notifier).reset();
     });
   }
 
   @override
-  Widget build(BuildContext context) {
-    ref.watch(authLoginProvider);
-    return const _AuthLoginView();
-  }
+  Widget build(BuildContext context) => const _AuthLoginView();
 }
 
-class _AuthLoginView extends StatefulWidget {
+class _AuthLoginView extends ConsumerStatefulWidget {
   const _AuthLoginView();
 
   @override
-  State<_AuthLoginView> createState() => _AuthLoginViewState();
+  ConsumerState<_AuthLoginView> createState() => _AuthLoginViewState();
 }
 
-class _AuthLoginViewState extends State<_AuthLoginView> {
+class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
   bool _isLogin = true;
   int _slideDirection = 1;
 
@@ -50,12 +54,10 @@ class _AuthLoginViewState extends State<_AuthLoginView> {
 
   @override
   void dispose() {
-    _loginEmail.dispose();
-    _loginPassword.dispose();
-    _signupName.dispose();
-    _signupEmail.dispose();
-    _signupPassword.dispose();
-    _signupConfirmPassword.dispose();
+    for (final c in [_loginEmail, _loginPassword, _signupName, _signupEmail,
+        _signupPassword, _signupConfirmPassword]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -67,17 +69,42 @@ class _AuthLoginViewState extends State<_AuthLoginView> {
     });
   }
 
+  void _showError(String message) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(
+          content: Text(message), backgroundColor: Colors.red.shade700));
+
   @override
   Widget build(BuildContext context) {
-    const bg = Color(0xFFE8E8E8);
-    const accent = Color(0xFFFF4D06);
+    final loginState = ref.watch(authLoginProvider);
+    final registerState = ref.watch(authRegisterProvider);
+
+    ref.listen(authLoginProvider, (_, next) {
+      if (next.status == AuthLoginStatus.success && next.user != null) {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (_) => next.user!.isCashier
+                ? const CashierDashboardPage()
+                : const CustomerDashboardPage()));
+        return;
+      }
+      if (next.status == AuthLoginStatus.failure && next.message.isNotEmpty) {
+        _showError(next.message);
+      }
+    });
+    ref.listen(authRegisterProvider, (_, next) {
+      if (next.status == AuthRegisterStatus.success) {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (_) => const CustomerDashboardPage()));
+        return;
+      }
+      if (next.status == AuthRegisterStatus.failure && next.message.isNotEmpty) {
+        _showError(next.message);
+      }
+    });
+
     final size = MediaQuery.sizeOf(context);
     final isSmall = size.height < 720;
     final horizontal = (size.width * 0.10).clamp(20.0, 48.0);
-    final topPanelHeight = (size.height * (isSmall ? 0.33 : 0.36)).clamp(
-      230.0,
-      320.0,
-    );
+    final topPanelHeight = (size.height * (isSmall ? 0.33 : 0.36)).clamp(230.0, 320.0);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -86,7 +113,7 @@ class _AuthLoginViewState extends State<_AuthLoginView> {
         statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: bg,
+        backgroundColor: _bg,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -97,7 +124,7 @@ class _AuthLoginViewState extends State<_AuthLoginView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _TopPanel(
+                        AuthTopPanel(
                           height: topPanelHeight,
                           isLogin: _isLogin,
                           onLoginTap: () => _switchTab(true),
@@ -106,11 +133,7 @@ class _AuthLoginViewState extends State<_AuthLoginView> {
                         Expanded(
                           child: Padding(
                             padding: EdgeInsets.fromLTRB(
-                              horizontal,
-                              isSmall ? 22 : 30,
-                              horizontal,
-                              26,
-                            ),
+                                horizontal, isSmall ? 22 : 30, horizontal, 26),
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 320),
                               switchInCurve: Curves.easeOutCubic,
@@ -122,26 +145,50 @@ class _AuthLoginViewState extends State<_AuthLoginView> {
                                 ).animate(animation);
                                 return FadeTransition(
                                   opacity: animation,
-                                  child: SlideTransition(
-                                    position: offset,
-                                    child: child,
-                                  ),
+                                  child:
+                                      SlideTransition(position: offset, child: child),
                                 );
                               },
                               child: _isLogin
-                                  ? _LoginForm(
+                                  ? LoginForm(
                                       key: const ValueKey('login'),
-                                      accent: accent,
+                                      accent: _accent,
                                       email: _loginEmail,
                                       password: _loginPassword,
+                                      isLoading:
+                                          loginState.status == AuthLoginStatus.loading,
+                                      onLogin: () {
+                                        if (loginState.status !=
+                                            AuthLoginStatus.loading) {
+                                          ref
+                                              .read(authLoginProvider.notifier)
+                                              .login(_loginEmail.text.trim(),
+                                                  _loginPassword.text);
+                                        }
+                                      },
                                     )
-                                  : _SignUpForm(
+                                  : SignUpForm(
                                       key: const ValueKey('signup'),
-                                      accent: accent,
+                                      accent: _accent,
                                       name: _signupName,
                                       email: _signupEmail,
                                       password: _signupPassword,
                                       confirmPassword: _signupConfirmPassword,
+                                      isLoading: registerState.status ==
+                                          AuthRegisterStatus.loading,
+                                      onSignUp: () {
+                                        if (registerState.status !=
+                                            AuthRegisterStatus.loading) {
+                                          ref
+                                              .read(authRegisterProvider.notifier)
+                                              .register(
+                                                  name: _signupName.text.trim(),
+                                                  email: _signupEmail.text.trim(),
+                                                  password: _signupPassword.text,
+                                                  passwordConfirmation:
+                                                      _signupConfirmPassword.text);
+                                        }
+                                      },
                                     ),
                             ),
                           ),
@@ -153,470 +200,6 @@ class _AuthLoginViewState extends State<_AuthLoginView> {
               );
             },
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TopPanel extends StatelessWidget {
-  const _TopPanel({
-    required this.height,
-    required this.isLogin,
-    required this.onLoginTap,
-    required this.onSignupTap,
-  });
-
-  final double height;
-  final bool isLogin;
-  final VoidCallback onLoginTap;
-  final VoidCallback onSignupTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Column(
-        children: [
-          const Spacer(),
-          const Icon(
-            Icons.restaurant_menu_rounded,
-            color: Color(0xFFFF8A26),
-            size: 84,
-          ),
-          const SizedBox(height: 4),
-          Container(
-            width: 34,
-            height: 22,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE12020),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
-              ),
-            ),
-          ),
-          const Spacer(),
-          _TabRow(
-            isLogin: isLogin,
-            onLoginTap: onLoginTap,
-            onSignupTap: onSignupTap,
-          ),
-          const SizedBox(height: 0),
-        ],
-      ),
-    );
-  }
-}
-
-class _TabRow extends StatelessWidget {
-  const _TabRow({
-    required this.isLogin,
-    required this.onLoginTap,
-    required this.onSignupTap,
-  });
-
-  final bool isLogin;
-  final VoidCallback onLoginTap;
-  final VoidCallback onSignupTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: [
-          Expanded(
-            child: _TabItem(label: 'Login', active: isLogin, onTap: onLoginTap),
-          ),
-          Expanded(
-            child: _TabItem(
-              label: 'Sign-up',
-              active: !isLogin,
-              onTap: onSignupTap,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TabItem extends StatelessWidget {
-  const _TabItem({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: active
-                    ? const Color(0xFF1B1B1B)
-                    : const Color(0xFF777777),
-              ),
-            ),
-            const SizedBox(height: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              height: 3,
-              width: double.infinity,
-              color: active ? const Color(0xFFFF4D06) : Colors.transparent,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LoginForm extends StatelessWidget {
-  const _LoginForm({
-    super.key,
-    required this.accent,
-    required this.email,
-    required this.password,
-  });
-
-  final Color accent;
-  final TextEditingController email;
-  final TextEditingController password;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _LinedTextField(label: 'Email address', controller: email),
-        const SizedBox(height: 24),
-        _LinedTextField(label: 'Password', controller: password, obscure: true),
-        const SizedBox(height: 18),
-        TextButton(
-          onPressed: () {},
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            foregroundColor: accent,
-          ),
-          child: const Text(
-            'Forgot passcode?',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-          ),
-        ),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: ElevatedButton(
-            onPressed: () {
-              showModalBottomSheet<String>(
-                context: context,
-                backgroundColor: Colors.transparent,
-                builder: (_) => Container(
-                  padding: const EdgeInsets.fromLTRB(24, 22, 24, 32),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD0D0D0),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      const Text(
-                        'Login as',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF121212),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      _RoleTile(
-                        icon: Icons.person_outline_rounded,
-                        label: 'Customer',
-                        subtitle: 'Browse menu & place orders',
-                        color: accent,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CustomerDashboardPage(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      _RoleTile(
-                        icon: Icons.point_of_sale_rounded,
-                        label: 'Cashier',
-                        subtitle: 'Manage orders & transactions',
-                        color: accent,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CashierDashboardPage(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              elevation: 0,
-              backgroundColor: accent,
-              foregroundColor: Colors.white,
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-            ),
-            child: const Text('Login'),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SignUpForm extends StatelessWidget {
-  const _SignUpForm({
-    super.key,
-    required this.accent,
-    required this.name,
-    required this.email,
-    required this.password,
-    required this.confirmPassword,
-  });
-
-  final Color accent;
-  final TextEditingController name;
-  final TextEditingController email;
-  final TextEditingController password;
-  final TextEditingController confirmPassword;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _LinedTextField(label: 'Full name', controller: name),
-        const SizedBox(height: 16),
-        _LinedTextField(label: 'Email address', controller: email),
-        const SizedBox(height: 16),
-        _LinedTextField(label: 'Password', controller: password, obscure: true),
-        const SizedBox(height: 16),
-        _LinedTextField(
-          label: 'Confirm password',
-          controller: confirmPassword,
-          obscure: true,
-        ),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              elevation: 0,
-              backgroundColor: accent,
-              foregroundColor: Colors.white,
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-            ),
-            child: const Text('Create account'),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LinedTextField extends StatefulWidget {
-  const _LinedTextField({
-    required this.label,
-    required this.controller,
-    this.obscure = false,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final bool obscure;
-
-  @override
-  State<_LinedTextField> createState() => _LinedTextFieldState();
-}
-
-class _LinedTextFieldState extends State<_LinedTextField> {
-  late bool _obscureText;
-
-  @override
-  void initState() {
-    super.initState();
-    _obscureText = widget.obscure;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF959595),
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: widget.controller,
-          obscureText: _obscureText,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111111),
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 6),
-            border: InputBorder.none,
-            suffixIcon: widget.obscure
-                ? IconButton(
-                    onPressed: () =>
-                        setState(() => _obscureText = !_obscureText),
-                    icon: Icon(
-                      _obscureText
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      size: 20,
-                      color: const Color(0xFF7A7A7A),
-                    ),
-                  )
-                : null,
-            suffixIconConstraints: const BoxConstraints(
-              minHeight: 24,
-              minWidth: 36,
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(height: 1, color: const Color(0xFF8B8B8B)),
-      ],
-    );
-  }
-}
-
-class _RoleTile extends StatelessWidget {
-  const _RoleTile({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: color.withValues(alpha: 0.18)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF121212),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF8B8B8B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: color),
-          ],
         ),
       ),
     );

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:restaurant/features/auth/login/presentation/pages/auth_login_page.dart';
+import 'package:restaurant/features/auth/splash/presentation/pages/splash_page.dart';
 
-void main() {
+void main() async {
+  await dotenv.load();
   runApp(const ProviderScope(child: MainApp()));
 }
 
@@ -13,7 +15,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AuthLoginPage(),
+      home: SplashPage(),
     );
   }
 }
