@@ -110,6 +110,48 @@ class CashierAddonManagementNotifier
     }
   }
 
+  Future<bool> updateAddon({
+    required int id,
+    required String name,
+    required int price,
+    required String type,
+    required bool isAvailable,
+  }) async {
+    state = state.copyWith(
+      status: CashierAddonManagementStatus.loading,
+      message: '',
+    );
+
+    try {
+      await DioClient.instance.put('/api/addons/$id', data: {
+        'name': name,
+        'price': price,
+        'type': type,
+        'is_available': isAvailable,
+      });
+
+      state = state.copyWith(
+        status: CashierAddonManagementStatus.success,
+        message: 'Addon updated successfully',
+      );
+
+      await fetchAddons();
+      return true;
+    } on DioException catch (e) {
+      state = state.copyWith(
+        status: CashierAddonManagementStatus.failure,
+        message: _mapError(e, CashierStrings.unexpectedError),
+      );
+      return false;
+    } catch (_) {
+      state = state.copyWith(
+        status: CashierAddonManagementStatus.failure,
+        message: CashierStrings.unexpectedError,
+      );
+      return false;
+    }
+  }
+
   Future<bool> deleteAddon(int id) async {
     state = state.copyWith(
       status: CashierAddonManagementStatus.loading,

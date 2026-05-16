@@ -65,6 +65,20 @@ class _CashierAddonManagementPageState
                 type: type,
                 isAvailable: isAvailable,
               ),
+      onUpdate: ({
+        required int id,
+        required String name,
+        required int price,
+        required String type,
+        required bool isAvailable,
+      }) =>
+          ref.read(cashierAddonManagementProvider.notifier).updateAddon(
+                id: id,
+                name: name,
+                price: price,
+                type: type,
+                isAvailable: isAvailable,
+              ),
       onDelete: (int id) =>
           ref.read(cashierAddonManagementProvider.notifier).deleteAddon(id),
     );
@@ -76,6 +90,7 @@ class _CashierAddonManagementView extends StatefulWidget {
     required this.state,
     required this.onRefresh,
     required this.onCreate,
+    required this.onUpdate,
     required this.onDelete,
   });
 
@@ -87,6 +102,13 @@ class _CashierAddonManagementView extends StatefulWidget {
     required String type,
     required bool isAvailable,
   }) onCreate;
+  final Future<bool> Function({
+    required int id,
+    required String name,
+    required int price,
+    required String type,
+    required bool isAvailable,
+  }) onUpdate;
   final Future<bool> Function(int id) onDelete;
 
   @override
@@ -270,6 +292,7 @@ class _CashierAddonManagementViewState
                                         formattedPrice:
                                             _formatPrice(filtered[i].price),
                                         accent: _accent,
+                                        onEdit: () => _showEditSheet(context, filtered[i]),
                                         onDelete: () => _showDeleteDialog(
                                             context, filtered[i]),
                                       ),
@@ -465,6 +488,147 @@ class _CashierAddonManagementViewState
     );
   }
 
+  void _showEditSheet(BuildContext context, Addon addon) {
+    final nameCtrl = TextEditingController(text: addon.name);
+    final priceCtrl = TextEditingController(text: addon.price.toString());
+    String selectedType = addon.type;
+    bool isAvailable = addon.isAvailable;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD0D0D0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Edit Addon',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF121212),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                _SheetTextField(label: 'Addon Name', controller: nameCtrl),
+                const SizedBox(height: 12),
+                _SheetTextField(
+                  label: 'Price',
+                  controller: priceCtrl,
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+
+                // Type dropdown
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: ['Extra', 'Toppings', 'Sauce'].contains(selectedType) ? selectedType : 'Extra',
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(value: 'Extra', child: Text('Extra')),
+                        DropdownMenuItem(
+                            value: 'Toppings', child: Text('Toppings')),
+                        DropdownMenuItem(value: 'Sauce', child: Text('Sauce')),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) setSheetState(() => selectedType = v);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Availability toggle
+                Row(
+                  children: [
+                    const Text(
+                      'Available',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF121212),
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: isAvailable,
+                      activeColor: _accent,
+                      onChanged: (v) {
+                        setSheetState(() => isAvailable = v);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameCtrl.text.trim().isEmpty ||
+                          priceCtrl.text.trim().isEmpty) return;
+                      final price = int.tryParse(priceCtrl.text.trim());
+                      if (price == null) return;
+                      final success = await widget.onUpdate(
+                        id: addon.id,
+                        name: nameCtrl.text.trim(),
+                        price: price,
+                        type: selectedType,
+                        isAvailable: isAvailable,
+                      );
+                      if (success && ctx.mounted) Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: _accent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                    child: const Text(
+                      'Update Addon',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showDeleteDialog(BuildContext context, Addon addon) {
     showDialog(
       context: context,
@@ -512,12 +676,14 @@ class _AddonTile extends StatelessWidget {
     required this.addon,
     required this.formattedPrice,
     required this.accent,
+    required this.onEdit,
     required this.onDelete,
   });
 
   final Addon addon;
   final String formattedPrice;
   final Color accent;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   IconData get _typeIcon {
@@ -634,6 +800,14 @@ class _AddonTile extends StatelessWidget {
               color: addon.isAvailable
                   ? const Color(0xFF2ECC71)
                   : const Color(0xFFE74C3C),
+            ),
+          ),
+          IconButton(
+            onPressed: onEdit,
+            icon: Icon(
+              Icons.edit_outlined,
+              size: 18,
+              color: const Color(0xFF3498DB).withValues(alpha: 0.80),
             ),
           ),
           IconButton(
