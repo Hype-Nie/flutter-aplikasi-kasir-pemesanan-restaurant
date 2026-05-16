@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/features/customer/domain/entities/order.dart';
-import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
 import '../providers/customer_order_history_provider.dart';
+import '../widgets/order_detail_widgets.dart';
 import '../widgets/order_widgets.dart';
 
 const _accent = Color(0xFFFF460A);
@@ -48,7 +48,8 @@ class _CustomerOrderHistoryDetailPageState
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18),
+          icon: const Icon(Icons.arrow_back_ios_new,
+              color: Colors.black, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text('Order ${order.orderNumber}',
@@ -58,7 +59,7 @@ class _CustomerOrderHistoryDetailPageState
       ),
       body: Builder(builder: (context) {
         if (state.status == CustomerOrderHistoryStatus.loading) {
-          return _buildShimmer();
+          return const OrderDetailShimmer();
         }
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -85,14 +86,7 @@ class _CustomerOrderHistoryDetailPageState
               const Text('Items',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              DetailCard(children: [
-                const ItemRow(name: 'Veggie tomato mix', qty: '1', price: '1,900'),
-                const Divider(height: 24),
-                const ItemRow(
-                    name: 'Fishwith mix orange', qty: '1', price: '1,900'),
-                const Divider(height: 24),
-                const ItemRow(name: 'Extra Sauce', qty: '1', price: '500'),
-              ]),
+              DetailCard(children: buildOrderItemList(state)),
               const SizedBox(height: 24),
               const Text('Payment Details',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
@@ -136,54 +130,6 @@ class _CustomerOrderHistoryDetailPageState
           ),
         );
       }),
-    );
-  }
-
-  Widget _buildShimmer() {
-    return ShimmerEffect(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Column(
-                children: [
-                  ShimmerBlock(width: double.infinity, height: 18),
-                  SizedBox(height: 24),
-                  ShimmerBlock(width: 200, height: 14),
-                  SizedBox(height: 24),
-                  ShimmerBlock(width: 160, height: 14),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            const ShimmerBlock(width: 60, height: 22),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Column(
-                children: [
-                  ShimmerBlock(width: double.infinity, height: 16),
-                  SizedBox(height: 20),
-                  ShimmerBlock(width: double.infinity, height: 16),
-                  SizedBox(height: 20),
-                  ShimmerBlock(width: 160, height: 16),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
