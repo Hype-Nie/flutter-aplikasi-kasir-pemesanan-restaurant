@@ -13,17 +13,32 @@ class CashierOrderReportState extends Equatable {
     this.status = CashierOrderReportStatus.initial,
     this.message = '',
     this.orders = const [],
+    this.startDate,
+    this.endDate,
   });
 
   final CashierOrderReportStatus status;
   final String message;
   final List<Order> orders;
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  bool _isWithinRange(Order o) {
+    if (o.createdAt == null) return true; // If no date, include it or skip? Include for now.
+    final dt = o.createdAt!.toLocal();
+    if (startDate != null && dt.isBefore(startDate!)) return false;
+    // End date is inclusive of the whole day
+    if (endDate != null && dt.isAfter(endDate!.add(const Duration(days: 1)))) return false;
+    return true;
+  }
+
+  List<Order> get filteredOrders => orders.where(_isWithinRange).toList();
 
   List<Order> get completedOrders =>
-      orders.where((o) => o.status == 'completed').toList();
+      filteredOrders.where((o) => o.status == 'completed').toList();
 
   List<Order> get cancelledOrders =>
-      orders.where((o) => o.status == 'cancelled').toList();
+      filteredOrders.where((o) => o.status == 'cancelled').toList();
 
   double get totalRevenue =>
       completedOrders.fold(0.0, (sum, o) => sum + o.totalAmount);
@@ -58,16 +73,21 @@ class CashierOrderReportState extends Equatable {
     CashierOrderReportStatus? status,
     String? message,
     List<Order>? orders,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool clearDates = false,
   }) {
     return CashierOrderReportState(
       status: status ?? this.status,
       message: message ?? this.message,
       orders: orders ?? this.orders,
+      startDate: clearDates ? null : (startDate ?? this.startDate),
+      endDate: clearDates ? null : (endDate ?? this.endDate),
     );
   }
 
   @override
-  List<Object?> get props => [status, message, orders];
+  List<Object?> get props => [status, message, orders, startDate, endDate];
 }
 
 class CashierOrderReportNotifier extends Notifier<CashierOrderReportState> {
@@ -100,6 +120,14 @@ class CashierOrderReportNotifier extends Notifier<CashierOrderReportState> {
         status: CashierOrderReportStatus.failure,
         message: CashierStrings.unexpectedError,
       );
+    }
+  }
+
+  void setDateRange(DateTime? start, DateTime? end) {
+    if (start == null && end == null) {
+      state = state.copyWith(clearDates: true);
+    } else {
+      state = state.copyWith(startDate: start, endDate: end);
     }
   }
 

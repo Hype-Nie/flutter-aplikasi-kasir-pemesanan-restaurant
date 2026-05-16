@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+
+import 'package:restaurant/core/utils/receipt_printer.dart';
 
 import 'package:restaurant/shared/models/order.dart';
 import 'package:restaurant/features/cashier/order_report/presentation/pages/cashier_order_report_page.dart';
@@ -20,180 +19,95 @@ class CashierHomeTab extends ConsumerWidget {
     return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
   }
 
-  String _formatDateTime(DateTime? dateTime) {
-    if (dateTime == null) return '-';
-    final local = dateTime.toLocal();
-    final day = local.day.toString().padLeft(2, '0');
-    final month = local.month.toString().padLeft(2, '0');
-    final year = local.year.toString();
-    final hour = local.hour.toString().padLeft(2, '0');
-    final minute = local.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year $hour:$minute';
-  }
-
-  String _toDisplayText(String value) {
-    return value
-        .replaceAll('_', ' ')
-        .split(' ')
-        .where((part) => part.isNotEmpty)
-        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
-        .join(' ');
-  }
-
-  Order? _latestOrder(List<Order> orders) {
-    if (orders.isEmpty) return null;
-    final sorted = [...orders]
-      ..sort((a, b) {
-        final bDate =
-            b.createdAt ??
-            b.updatedAt ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        final aDate =
-            a.createdAt ??
-            a.updatedAt ??
-            DateTime.fromMillisecondsSinceEpoch(0);
-        return bDate.compareTo(aDate);
-      });
-    return sorted.first;
-  }
-
-  Future<void> _printLatestReceipt(
-    BuildContext context,
-    List<Order> orders,
-  ) async {
-    final order = _latestOrder(orders);
-    if (order == null) {
+  void _showPrintSelectionSheet(BuildContext context, List<Order> completedOrders) {
+    if (completedOrders.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No order available to print receipt')),
+        const SnackBar(content: Text('No completed orders available to print')),
       );
       return;
     }
 
-    try {
-      final receiptDoc = pw.Document();
-      final printedAt = DateTime.now();
+    // Sort to show newest first
+    final sorted = [...completedOrders]..sort((a, b) {
+        final bDate = b.createdAt ?? b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final aDate = a.createdAt ?? a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDate.compareTo(aDate);
+      });
 
-      receiptDoc.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a6,
-          margin: const pw.EdgeInsets.all(14),
-          build: (_) {
-            final orderTime = order.createdAt ?? order.updatedAt ?? printedAt;
-            final itemWidgets = order.items.isEmpty
-                ? <pw.Widget>[
-                    pw.Text(
-                      'No item details available',
-                      style: const pw.TextStyle(fontSize: 10),
-                    ),
-                  ]
-                : order.items
-                      .map(
-                        (item) => pw.Padding(
-                          padding: const pw.EdgeInsets.only(bottom: 5),
-                          child: pw.Row(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Expanded(
-                                flex: 2,
-                                child: pw.Text(
-                                  '${item.quantity}x ${item.menuName}',
-                                  style: const pw.TextStyle(fontSize: 10),
-                                ),
-                              ),
-                              pw.SizedBox(width: 8),
-                              pw.Text(
-                                _formatPrice(item.subtotal),
-                                style: const pw.TextStyle(fontSize: 10),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                      .toList();
-
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Center(
-                  child: pw.Text(
-                    'RECEIPT',
-                    style: pw.TextStyle(
-                      fontSize: 16,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 4),
-                pw.Center(
-                  child: pw.Text(
-                    'Restaurant Cashier',
-                    style: const pw.TextStyle(fontSize: 10),
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-                pw.Divider(height: 1),
-                pw.SizedBox(height: 8),
-                pw.Text('Order: ${order.orderNumber}'),
-                pw.Text('Date: ${_formatDateTime(orderTime)}'),
-                pw.Text('Type: ${_toDisplayText(order.orderType)}'),
-                pw.Text('Status: ${_toDisplayText(order.status)}'),
-                pw.Text('Payment: ${_toDisplayText(order.paymentMethod)}'),
-                pw.SizedBox(height: 8),
-                pw.Divider(height: 1),
-                pw.SizedBox(height: 8),
-                pw.Text(
-                  'Items',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-                pw.SizedBox(height: 6),
-                ...itemWidgets,
-                pw.SizedBox(height: 6),
-                pw.Divider(height: 1),
-                pw.SizedBox(height: 8),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      'Total',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    pw.Text(
-                      _formatPrice(order.totalAmount),
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 12),
-                pw.Center(
-                  child: pw.Text(
-                    'Printed: ${_formatDateTime(printedAt)}',
-                    style: const pw.TextStyle(fontSize: 9),
-                  ),
-                ),
-              ],
-            );
-          },
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-      );
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD0D0D0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Select Receipt to Print',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF121212),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: sorted.length,
+                itemBuilder: (context, index) {
+                  final order = sorted[index];
+                  final orderTime = order.createdAt ?? order.updatedAt;
+                  final timeStr = orderTime != null
+                      ? '${orderTime.toLocal().day.toString().padLeft(2, '0')}/${orderTime.toLocal().month.toString().padLeft(2, '0')} ${orderTime.toLocal().hour.toString().padLeft(2, '0')}:${orderTime.toLocal().minute.toString().padLeft(2, '0')}'
+                      : '-';
 
-      final pdfBytes = await receiptDoc.save();
-      await Printing.layoutPdf(
-        name: 'receipt_${order.orderNumber}.pdf',
-        onLayout: (_) async => pdfBytes,
-      );
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Receipt ${order.orderNumber} sent to print')),
-        );
-      }
-    } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to print receipt')),
-        );
-      }
-    }
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _accent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.receipt_long, color: _accent, size: 20),
+                    ),
+                    title: Text(
+                      order.orderNumber,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                    ),
+                    subtitle: Text(
+                      '$timeStr  •  ${_formatPrice(order.totalAmount)}',
+                      style: const TextStyle(color: Color(0xFF8B8B8B), fontSize: 13),
+                    ),
+                    trailing: const Icon(Icons.print_rounded, color: _accent, size: 22),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      ReceiptPrinter.printReceipt(context, order);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -362,7 +276,7 @@ class CashierHomeTab extends ConsumerWidget {
                 icon: Icons.print_rounded,
                 label: 'Print Receipt',
                 color: const Color(0xFF3498DB),
-                onTap: () => _printLatestReceipt(context, orders),
+                onTap: () => _showPrintSelectionSheet(context, completed),
               ),
               const SizedBox(width: 10),
               _QuickActionChip(

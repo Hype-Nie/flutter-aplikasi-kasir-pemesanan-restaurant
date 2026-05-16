@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:restaurant/core/utils/receipt_printer.dart';
 import 'package:restaurant/features/cashier/order_history/presentation/pages/cashier_order_history_detail_page.dart';
 
 import 'package:restaurant/shared/models/order.dart';
@@ -401,7 +403,15 @@ class _HistoryTile extends StatelessWidget {
               ],
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFFB0B0B0)),
+            if (isCompleted)
+              IconButton(
+                icon: const Icon(Icons.print_rounded, color: Color(0xFFFF4D06), size: 22),
+                onPressed: () => ReceiptPrinter.printReceipt(context, order),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              )
+            else
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFB0B0B0)),
           ],
         ),
       ),

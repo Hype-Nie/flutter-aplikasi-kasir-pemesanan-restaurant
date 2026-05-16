@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:restaurant/shared/models/order.dart';
+import 'package:restaurant/core/utils/report_printer.dart';
 import '../riverpod/cashier_order_report_provider.dart';
 
 class CashierOrderReportPage extends ConsumerStatefulWidget {
@@ -30,15 +31,22 @@ class _CashierOrderReportPageState
       state: state,
       onRefresh: () =>
           ref.read(cashierOrderReportProvider.notifier).fetchReport(),
+      onDateFilter: (start, end) =>
+          ref.read(cashierOrderReportProvider.notifier).setDateRange(start, end),
     );
   }
 }
 
 class _CashierOrderReportView extends StatefulWidget {
-  const _CashierOrderReportView({required this.state, required this.onRefresh});
+  const _CashierOrderReportView({
+    required this.state,
+    required this.onRefresh,
+    required this.onDateFilter,
+  });
 
   final CashierOrderReportState state;
   final Future<void> Function() onRefresh;
+  final void Function(DateTime?, DateTime?) onDateFilter;
 
   @override
   State<_CashierOrderReportView> createState() =>
@@ -268,7 +276,42 @@ class _CashierOrderReportViewState extends State<_CashierOrderReportView>
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              onPressed: () {},
+              onPressed: () async {
+                final currentStart = widget.state.startDate ?? DateTime.now().subtract(const Duration(days: 30));
+                final currentEnd = widget.state.endDate ?? DateTime.now();
+                final range = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime.now(),
+                  initialDateRange: DateTimeRange(start: currentStart, end: currentEnd),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: _accent,
+                          onPrimary: Colors.white,
+                          onSurface: Color(0xFF121212),
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (range != null) {
+                  widget.onDateFilter(range.start, range.end);
+                }
+              },
+              icon: Icon(Icons.date_range_rounded, size: 22, color: _accent),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              onPressed: () => ReportPrinter.printReport(context, widget.state),
               icon: Icon(Icons.download_rounded, size: 22, color: _accent),
             ),
           ),
