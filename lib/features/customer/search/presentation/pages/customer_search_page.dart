@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
 
+String _formatPrice(String raw) {
+  try {
+    final amount = double.parse(raw);
+    final whole = amount.toInt().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.');
+    return 'Rp $whole';
+  } catch (_) {
+    return raw;
+  }
+}
+
 class CustomerSearchPage extends StatefulWidget {
   const CustomerSearchPage({
     super.key,
@@ -220,7 +230,7 @@ class _SearchCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    item['price']!,
+                    _formatPrice(item['price']!),
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w800,

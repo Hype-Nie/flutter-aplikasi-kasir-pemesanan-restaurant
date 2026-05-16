@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
+
 import '../../../checkout/presentation/pages/customer_checkout_page.dart';
 import '../providers/customer_cart_provider.dart';
 import '../../domain/entities/cart_item.dart';
+
+String _formatPrice(String raw) {
+  try {
+    final amount = double.parse(raw);
+    final whole = amount.toInt().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.');
+    return 'Rp $whole';
+  } catch (_) { return raw; }
+}
 
 class CustomerCartPage extends ConsumerWidget {
   const CustomerCartPage({super.key});
@@ -274,14 +283,22 @@ class _CartItemTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'N1,900',
-                    style: TextStyle(
+                  Text(
+                    _formatPrice(item.price),
+                    style: const TextStyle(
                       color: Color(0xFFFF460A),
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                     ),
                   ),
+                  if (item.addonNames.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    ...item.addonNames.map((name) => Text(
+                          '+ $name',
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 11),
+                        )),
+                  ],
                 ],
               ),
             ),

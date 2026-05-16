@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
 
@@ -16,7 +17,8 @@ class CustomerProfilePage extends ConsumerStatefulWidget {
   const CustomerProfilePage({super.key});
 
   @override
-  ConsumerState<CustomerProfilePage> createState() => _CustomerProfilePageState();
+  ConsumerState<CustomerProfilePage> createState() =>
+      _CustomerProfilePageState();
 }
 
 class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
@@ -32,17 +34,28 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
   Widget build(BuildContext context) {
     final state = ref.watch(customerProfileProvider);
 
-    return Scaffold(
-      backgroundColor: _bg,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18),
-          onPressed: () => Navigator.pop(context),
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
       ),
-      body: _buildBody(state),
+      child: Scaffold(
+        backgroundColor: _bg,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.black,
+              size: 18,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: _buildBody(state),
+      ),
     );
   }
 
@@ -53,8 +66,10 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
     final user = state.user;
     if (user == null) {
       return const Center(
-        child: Text('Unable to load profile.',
-            style: TextStyle(color: Colors.black54)),
+        child: Text(
+          'Unable to load profile.',
+          style: TextStyle(color: Colors.black54),
+        ),
       );
     }
     return SingleChildScrollView(
@@ -63,18 +78,24 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 16),
-          const Text('My profile',
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
+          const Text(
+            'My profile',
+            style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 40),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Personal details',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const Text(
+                'Personal details',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
               TextButton(
                 onPressed: () => _navigate(const CustomerChangeProfilePage()),
-                child: const Text('change',
-                    style: TextStyle(color: _accent, fontSize: 15)),
+                child: const Text(
+                  'change',
+                  style: TextStyle(color: _accent, fontSize: 15),
+                ),
               ),
             ],
           ),
@@ -87,14 +108,21 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: user.avatar != null
-                      ? Image.network(user.avatar!,
-                          width: 90, height: 100, fit: BoxFit.cover)
+                      ? Image.network(
+                          user.avatar!,
+                          width: 90,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        )
                       : Container(
                           width: 90,
                           height: 100,
                           color: Colors.grey.shade200,
-                          child: const Icon(Icons.person,
-                              size: 48, color: Colors.grey),
+                          child: const Icon(
+                            Icons.person,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
                         ),
                 ),
                 const SizedBox(width: 16),
@@ -102,23 +130,39 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user.name,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w600)),
+                      Text(
+                        user.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text(user.email,
-                          style: const TextStyle(
-                              fontSize: 13, color: Colors.black54)),
+                      Text(
+                        user.email,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                      ),
                       const Divider(height: 20),
-                      Text(user.phone ?? '-',
-                          style: const TextStyle(
-                              fontSize: 13, color: Colors.black54)),
+                      Text(
+                        user.phone ?? '-',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                      ),
                       const Divider(height: 20),
-                      Text(user.address ?? '-',
-                          style: const TextStyle(
-                              fontSize: 13, color: Colors.black54),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
+                      Text(
+                        user.address ?? '-',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.black54,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
@@ -127,13 +171,17 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
           ),
           const SizedBox(height: 24),
           ProfileMenuItem(
-              title: 'Orders',
-              onTap: () => _navigate(const CustomerOrderHistoryPage())),
+            title: 'Orders',
+            onTap: () => _navigate(const CustomerOrderHistoryPage()),
+          ),
           ProfileMenuItem(
-              title: 'Faq', onTap: () => _navigate(const CustomerFaqPage())),
+            title: 'Faq',
+            onTap: () => _navigate(const CustomerFaqPage()),
+          ),
           ProfileMenuItem(
-              title: 'Privacy Policy',
-              onTap: () => _navigate(const CustomerPrivacyPolicyPage())),
+            title: 'Privacy Policy',
+            onTap: () => _navigate(const CustomerPrivacyPolicyPage()),
+          ),
           ProfileMenuItem(title: 'Help', onTap: () {}),
           const SizedBox(height: 40),
           SizedBox(
@@ -144,14 +192,18 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _accent,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30)),
+                  borderRadius: BorderRadius.circular(30),
+                ),
                 elevation: 0,
               ),
-              child: const Text('Update',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600)),
+              child: const Text(
+                'Update',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 24),
