@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 class CartItem extends Equatable {
-  final String id;
+  final int id;
   final String name;
   final String price;
   final String imageUrl;
@@ -16,12 +16,20 @@ class CartItem extends Equatable {
   });
 
   CartItem copyWith({int? quantity}) => CartItem(
-    id: id,
-    name: name,
-    price: price,
-    imageUrl: imageUrl,
-    quantity: quantity ?? this.quantity,
-  );
+        id: id,
+        name: name,
+        price: price,
+        imageUrl: imageUrl,
+        quantity: quantity ?? this.quantity,
+      );
+
+  factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
+        id: json['id'] as int,
+        name: json['name'] as String,
+        price: json['price'] as String,
+        imageUrl: json['image_url'] as String,
+        quantity: json['quantity'] as int? ?? 1,
+      );
 
   @override
   List<Object?> get props => [id, name, price, imageUrl, quantity];

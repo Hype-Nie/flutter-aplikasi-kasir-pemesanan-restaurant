@@ -64,10 +64,13 @@ class _CustomerMenuResultsPageState extends State<CustomerMenuResultsPage> {
             child: SlideTransition(
               position: slide,
               child: CustomerMenuDetailPage(
+                menuId: item.id,
                 name: item.name,
                 price: item.price,
                 imageUrl: item.imageUrl,
                 heroTag: item.heroTag,
+                description: item.description,
+                isAvailable: item.isAvailable,
               ),
             ),
           );
@@ -256,7 +259,14 @@ class _ResultCard extends StatelessWidget {
                     width: img,
                     height: img,
                     child: ClipOval(
-                      child: Image.network(item.imageUrl, fit: BoxFit.cover),
+                      child: item.imageUrl.isNotEmpty
+                          ? Image.network(
+                              item.imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const _ImagePlaceholder(),
+                            )
+                          : const _ImagePlaceholder(),
                     ),
                   ),
                 ),
@@ -271,24 +281,57 @@ class _ResultCard extends StatelessWidget {
 
 class _ResultItem {
   const _ResultItem({
+    required this.id,
     required this.name,
     required this.price,
     required this.imageUrl,
     required this.heroTag,
+    required this.description,
+    required this.isAvailable,
   });
+  final int id;
   final String name;
   final String price;
   final String imageUrl;
   final String heroTag;
+  final String description;
+  final bool isAvailable;
   factory _ResultItem.fromMap(Map<String, String> map, int index) {
     final name = map['name'] ?? 'Unknown item';
     return _ResultItem(
+      id: int.tryParse(map['id'] ?? '') ?? 0,
       name: name,
       price: map['price'] ?? 'N0',
       imageUrl:
           map['imageUrl'] ??
           'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200',
-      heroTag: 'menu-$index-$name',
+      heroTag: 'menu-${index}-$name',
+      description: map['description'] ?? '',
+      isAvailable: map['is_available'] != 'false',
+    );
+  }
+}
+
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: Color(0xFFF0F0F0),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey),
+            SizedBox(height: 4),
+            Text(
+              'Image not available',
+              style: TextStyle(color: Colors.grey, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -34,7 +34,9 @@ class _CustomerSearchPageState extends State<CustomerSearchPage> {
   List<Map<String, String>> get _visible {
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return [];
-    return widget.items.where((e) => e['name']!.toLowerCase().contains(q)).toList();
+    return widget.items
+        .where((e) => e['name']!.toLowerCase().contains(q))
+        .toList();
   }
 
   @override
@@ -47,14 +49,21 @@ class _CustomerSearchPageState extends State<CustomerSearchPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 18,
+            color: Colors.black,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: TextField(
           controller: _controller,
           onChanged: (v) => setState(() => _query = v),
           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-          decoration: const InputDecoration(border: InputBorder.none, hintText: 'Search'),
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            hintText: 'Search',
+          ),
         ),
       ),
       body: Container(
@@ -63,9 +72,9 @@ class _CustomerSearchPageState extends State<CustomerSearchPage> {
           color: Color(0xFFF9F9F9),
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
-        child: items.isEmpty && _query.isNotEmpty 
-          ? _buildNotFound() 
-          : _buildStaggeredResults(items),
+        child: items.isEmpty && _query.isNotEmpty
+            ? _buildNotFound()
+            : _buildStaggeredResults(items),
       ),
     );
   }
@@ -74,15 +83,23 @@ class _CustomerSearchPageState extends State<CustomerSearchPage> {
     final leftItems = <Map<String, String>>[];
     final rightItems = <Map<String, String>>[];
     for (var i = 0; i < items.length; i++) {
-      if (i % 2 == 0) leftItems.add(items[i]);
-      else rightItems.add(items[i]);
+      if (i.isEven) {
+        leftItems.add(items[i]);
+      } else {
+        rightItems.add(items[i]);
+      }
     }
-
     return Column(
       children: [
         const SizedBox(height: 30),
-        Text('Found ${items.length} results', 
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.black)),
+        Text(
+          'Found ${items.length} results',
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: Colors.black,
+          ),
+        ),
         const SizedBox(height: 30),
         Expanded(
           child: SingleChildScrollView(
@@ -90,12 +107,24 @@ class _CustomerSearchPageState extends State<CustomerSearchPage> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: Column(children: leftItems.map((e) => _SearchCard(item: e, isRight: false)).toList())),
+                Expanded(
+                  child: Column(
+                    children: leftItems
+                        .map((e) => _SearchCard(item: e, isRight: false))
+                        .toList(),
+                  ),
+                ),
                 const SizedBox(width: 20),
-                Expanded(child: Column(children: [
-                  const SizedBox(height: 40),
-                  ...rightItems.map((e) => _SearchCard(item: e, isRight: true)),
-                ])),
+                Expanded(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 40),
+                      ...rightItems.map(
+                        (e) => _SearchCard(item: e, isRight: true),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -113,10 +142,20 @@ class _CustomerSearchPageState extends State<CustomerSearchPage> {
           children: [
             const Icon(Icons.search, size: 120, color: Color(0xFFC7C7C7)),
             const SizedBox(height: 24),
-            const Text('Item not found', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
+            const Text(
+              'Item not found',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 12),
-            const Text('Try searching the item with\na different keyword.', 
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.4)),
+            const Text(
+              'Try searching the item with\na different keyword.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.black54,
+                height: 1.4,
+              ),
+            ),
           ],
         ),
       ),
@@ -128,11 +167,24 @@ class _SearchCard extends StatelessWidget {
   final Map<String, String> item;
   final bool isRight;
   const _SearchCard({required this.item, required this.isRight});
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerMenuDetailPage(
-        name: item['name']!, price: item['price']!, imageUrl: item['imageUrl']!, heroTag: 'search-${item['name']}'))),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CustomerMenuDetailPage(
+            menuId: int.tryParse(item['id'] ?? '') ?? 0,
+            name: item['name']!,
+            price: item['price']!,
+            imageUrl: item['imageUrl']!,
+            heroTag: 'search-${item['id']}',
+            description: item['description'] ?? '',
+            isAvailable: item['is_available'] != 'false',
+          ),
+        ),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 50),
         child: Stack(
@@ -142,33 +194,101 @@ class _SearchCard extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(16, 90, 16, 20),
               decoration: BoxDecoration(
-                color: Colors.white, 
-                borderRadius: BorderRadius.circular(30), 
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 10))]
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 15,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
-                  Text(item['name']!, textAlign: TextAlign.center, 
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.1, color: Colors.black), 
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(
+                    item['name']!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      height: 1.1,
+                      color: Colors.black,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 16),
-                  Text(item['price']!, 
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFFFF460A))),
+                  Text(
+                    item['price']!,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFFF460A),
+                    ),
+                  ),
                 ],
               ),
             ),
             Positioned(
-              top: -30, left: 0, right: 0,
+              top: -30,
+              left: 0,
+              right: 0,
               child: Center(
                 child: Hero(
-                  tag: 'search-${item['name']}',
+                  tag: 'search-${item['id']}',
                   child: Container(
-                    width: 110, height: 110,
-                    decoration: const BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 15, offset: Offset(0, 8))]),
-                    child: ClipOval(child: Image.network(item['imageUrl']!, fit: BoxFit.cover)),
+                    width: 110,
+                    height: 110,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 15,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child:
+                          item['imageUrl'] != null &&
+                              item['imageUrl']!.isNotEmpty
+                          ? Image.network(
+                              item['imageUrl']!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  const _ImagePlaceholder(),
+                            )
+                          : const _ImagePlaceholder(),
+                    ),
                   ),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: Color(0xFFF0F0F0),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey),
+            SizedBox(height: 4),
+            Text(
+              'Image not available',
+              style: TextStyle(color: Colors.grey, fontSize: 11),
             ),
           ],
         ),

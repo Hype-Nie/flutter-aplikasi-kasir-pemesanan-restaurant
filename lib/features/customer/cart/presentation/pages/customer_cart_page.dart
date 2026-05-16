@@ -254,7 +254,10 @@ class _CartItemTile extends StatelessWidget {
                 ],
               ),
               child: ClipOval(
-                child: Image.network(item.imageUrl, fit: BoxFit.cover),
+                child: item.imageUrl.isNotEmpty
+                    ? Image.network(item.imageUrl, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined, size: 28, color: Colors.grey))
+                    : const Icon(Icons.broken_image_outlined, size: 28, color: Colors.grey),
               ),
             ),
             const SizedBox(width: 16),
