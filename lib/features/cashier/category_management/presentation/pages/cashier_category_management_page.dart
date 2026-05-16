@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:restaurant/config/strings/cashier_strings.dart';
+import 'package:restaurant/shared/models/category.dart';
 import '../riverpod/cashier_category_management_provider.dart';
 
 class CashierCategoryManagementPage extends ConsumerStatefulWidget {
@@ -18,19 +20,63 @@ class _CashierCategoryManagementPageState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(cashierCategoryManagementProvider.notifier).started();
+      ref.read(cashierCategoryManagementProvider.notifier).fetchCategories();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(cashierCategoryManagementProvider);
-    return const _CashierCategoryManagementView();
+    final state = ref.watch(cashierCategoryManagementProvider);
+
+    ref.listen(cashierCategoryManagementProvider, (prev, next) {
+      if (next.status == CashierCategoryManagementStatus.failure &&
+          next.message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
+      }
+      if (next.status == CashierCategoryManagementStatus.success &&
+          next.message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: const Color(0xFF2ECC71),
+          ),
+        );
+      }
+    });
+
+    return _CashierCategoryManagementView(
+      state: state,
+      onRefresh: () =>
+          ref.read(cashierCategoryManagementProvider.notifier).fetchCategories(),
+      onAdd: (name, desc) =>
+          ref.read(cashierCategoryManagementProvider.notifier).createCategory(name, desc),
+      onEdit: (id, {name, description}) =>
+          ref.read(cashierCategoryManagementProvider.notifier).updateCategory(id, name: name, description: description),
+      onDelete: (id) =>
+          ref.read(cashierCategoryManagementProvider.notifier).deleteCategory(id),
+    );
   }
 }
 
 class _CashierCategoryManagementView extends StatefulWidget {
-  const _CashierCategoryManagementView();
+  const _CashierCategoryManagementView({
+    required this.state,
+    required this.onRefresh,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final CashierCategoryManagementState state;
+  final Future<void> Function() onRefresh;
+  final Future<bool> Function(String name, String description) onAdd;
+  final Future<bool> Function(int id, {String? name, String? description}) onEdit;
+  final Future<bool> Function(int id) onDelete;
 
   @override
   State<_CashierCategoryManagementView> createState() =>
@@ -45,13 +91,24 @@ class _CashierCategoryManagementViewState
 
   late final AnimationController _animCtrl;
 
-  final _categories = const <_CategoryItem>[
-    _CategoryItem('Foods', Icons.restaurant_rounded, 12, Color(0xFFFF4D06)),
-    _CategoryItem('Drinks', Icons.local_cafe_rounded, 8, Color(0xFF3498DB)),
-    _CategoryItem('Snacks', Icons.cookie_rounded, 5, Color(0xFFF39C12)),
-    _CategoryItem('Sauce', Icons.water_drop_rounded, 3, Color(0xFFE74C3C)),
-    _CategoryItem('Desserts', Icons.cake_rounded, 0, Color(0xFF9B59B6)),
-    _CategoryItem('Seafood', Icons.set_meal_rounded, 0, Color(0xFF2ECC71)),
+  static const _categoryColors = <Color>[
+    Color(0xFFFF4D06),
+    Color(0xFF3498DB),
+    Color(0xFFF39C12),
+    Color(0xFFE74C3C),
+    Color(0xFF9B59B6),
+    Color(0xFF2ECC71),
+  ];
+
+  static const _categoryIcons = <IconData>[
+    Icons.restaurant_rounded,
+    Icons.local_cafe_rounded,
+    Icons.cookie_rounded,
+    Icons.water_drop_rounded,
+    Icons.cake_rounded,
+    Icons.set_meal_rounded,
+    Icons.fastfood_rounded,
+    Icons.local_pizza_rounded,
   ];
 
   @override
@@ -69,8 +126,18 @@ class _CashierCategoryManagementViewState
     super.dispose();
   }
 
+  Color _colorForIndex(int index) =>
+      _categoryColors[index % _categoryColors.length];
+
+  IconData _iconForIndex(int index) =>
+      _categoryIcons[index % _categoryIcons.length];
+
   @override
   Widget build(BuildContext context) {
+    final categories = widget.state.categories;
+    final isLoading =
+        widget.state.status == CashierCategoryManagementStatus.loading;
+
     return Scaffold(
       backgroundColor: _bg,
       floatingActionButton: TweenAnimationBuilder<double>(
@@ -101,21 +168,21 @@ class _CashierCategoryManagementViewState
                 children: [
                   _StatChip(
                     label: 'Total',
-                    value: '${_categories.length}',
+                    value: '${categories.length}',
                     color: _accent,
                   ),
                   const SizedBox(width: 10),
                   _StatChip(
-                    label: 'Active',
+                    label: 'With Desc',
                     value:
-                        '${_categories.where((c) => c.itemCount > 0).length}',
+                        '${categories.where((c) => c.description.isNotEmpty).length}',
                     color: const Color(0xFF2ECC71),
                   ),
                   const SizedBox(width: 10),
                   _StatChip(
-                    label: 'Empty',
+                    label: 'No Desc',
                     value:
-                        '${_categories.where((c) => c.itemCount == 0).length}',
+                        '${categories.where((c) => c.description.isEmpty).length}',
                     color: const Color(0xFFF39C12),
                   ),
                 ],
@@ -126,38 +193,87 @@ class _CashierCategoryManagementViewState
 
             // --- Category list ---
             Expanded(
-              child: AnimatedBuilder(
-                animation: _animCtrl,
-                builder: (_, __) {
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
-                    itemCount: _categories.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) {
-                      final delay = (i / _categories.length).clamp(0.0, 1.0);
-                      final curved = CurvedAnimation(
-                        parent: _animCtrl,
-                        curve: Interval(delay, 1.0, curve: Curves.easeOutCubic),
-                      );
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.15, 0),
-                          end: Offset.zero,
-                        ).animate(curved),
-                        child: FadeTransition(
-                          opacity: curved,
-                          child: _CategoryTile(
-                            item: _categories[i],
-                            accent: _accent,
-                            onEdit: () {},
-                            onDelete: () {},
+              child: isLoading && categories.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(color: _accent),
+                    )
+                  : categories.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.category_outlined,
+                                size: 64,
+                                color: _accent.withValues(alpha: 0.30),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No categories yet',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tap + to add your first category',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF8B8B8B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          color: _accent,
+                          onRefresh: widget.onRefresh,
+                          child: AnimatedBuilder(
+                            animation: _animCtrl,
+                            builder: (_, __) {
+                              return ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding:
+                                    const EdgeInsets.fromLTRB(18, 0, 18, 90),
+                                itemCount: categories.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (_, i) {
+                                  final delay =
+                                      (i / categories.length).clamp(0.0, 1.0);
+                                  final curved = CurvedAnimation(
+                                    parent: _animCtrl,
+                                    curve: Interval(delay, 1.0,
+                                        curve: Curves.easeOutCubic),
+                                  );
+                                  return SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.15, 0),
+                                      end: Offset.zero,
+                                    ).animate(curved),
+                                    child: FadeTransition(
+                                      opacity: curved,
+                                      child: _CategoryTile(
+                                        category: categories[i],
+                                        color: _colorForIndex(i),
+                                        icon: _iconForIndex(i),
+                                        accent: _accent,
+                                        onEdit: () => _showEditCategorySheet(
+                                            context, categories[i]),
+                                        onDelete: () =>
+                                            _showDeleteDialog(
+                                                context, categories[i]),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
             ),
           ],
         ),
@@ -193,62 +309,192 @@ class _CashierCategoryManagementViewState
   }
 
   void _showAddCategorySheet(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD0D0D0),
-                borderRadius: BorderRadius.circular(2),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD0D0D0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Add New Category',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF121212),
+              const SizedBox(height: 20),
+              const Text(
+                'Add New Category',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF121212),
+                ),
               ),
-            ),
-            const SizedBox(height: 22),
-            _SheetTextField(label: 'Category Name'),
-            const SizedBox(height: 12),
-            _SheetTextField(label: 'Description'),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  elevation: 0,
-                  backgroundColor: _accent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
+              const SizedBox(height: 22),
+              _SheetTextField(label: 'Category Name', controller: nameCtrl),
+              const SizedBox(height: 12),
+              _SheetTextField(label: 'Description', controller: descCtrl),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (nameCtrl.text.trim().isEmpty) return;
+                    final success = await widget.onAdd(
+                      nameCtrl.text.trim(),
+                      descCtrl.text.trim(),
+                    );
+                    if (success && ctx.mounted) Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                  ),
+                  child: const Text(
+                    'Save Category',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                 ),
-                child: const Text(
-                  'Save Category',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditCategorySheet(BuildContext context, Category category) {
+    final nameCtrl = TextEditingController(text: category.name);
+    final descCtrl = TextEditingController(text: category.description);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD0D0D0),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              const Text(
+                'Edit Category',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF121212),
+                ),
+              ),
+              const SizedBox(height: 22),
+              _SheetTextField(label: 'Category Name', controller: nameCtrl),
+              const SizedBox(height: 12),
+              _SheetTextField(label: 'Description', controller: descCtrl),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final success = await widget.onEdit(
+                      category.id,
+                      name: nameCtrl.text.trim(),
+                      description: descCtrl.text.trim(),
+                    );
+                    if (success && ctx.mounted) Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                  ),
+                  child: const Text(
+                    'Update Category',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, Category category) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          CashierStrings.deleteConfirmTitle,
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+        ),
+        content: Text(
+          '${CashierStrings.deleteConfirmMessage}\n\nCategory: ${category.name}',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF8B8B8B)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              CashierStrings.cancel,
+              style: TextStyle(color: Color(0xFF8B8B8B)),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.onDelete(category.id);
+            },
+            child: const Text(
+              CashierStrings.delete,
+              style: TextStyle(
+                color: Color(0xFFE74C3C),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -307,13 +553,17 @@ class _StatChip extends StatelessWidget {
 
 class _CategoryTile extends StatelessWidget {
   const _CategoryTile({
-    required this.item,
+    required this.category,
+    required this.color,
+    required this.icon,
     required this.accent,
     required this.onEdit,
     required this.onDelete,
   });
 
-  final _CategoryItem item;
+  final Category category;
+  final Color color;
+  final IconData icon;
   final Color accent;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -340,10 +590,10 @@ class _CategoryTile extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.10),
+              color: color.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(item.icon, color: item.color, size: 24),
+            child: Icon(icon, color: color, size: 24),
           ),
           const SizedBox(width: 14),
 
@@ -353,7 +603,7 @@ class _CategoryTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.name,
+                  category.name,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -362,12 +612,16 @@ class _CategoryTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${item.itemCount} menu items',
+                  category.description.isNotEmpty
+                      ? category.description
+                      : 'No description',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF8B8B8B),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -399,13 +653,15 @@ class _CategoryTile extends StatelessWidget {
 // ---------- Sheet Text Field ----------
 
 class _SheetTextField extends StatelessWidget {
-  const _SheetTextField({required this.label});
+  const _SheetTextField({required this.label, this.controller});
 
   final String label;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
@@ -431,14 +687,4 @@ class _SheetTextField extends StatelessWidget {
       ),
     );
   }
-}
-
-// ---------- Data ----------
-
-class _CategoryItem {
-  const _CategoryItem(this.name, this.icon, this.itemCount, this.color);
-  final String name;
-  final IconData icon;
-  final int itemCount;
-  final Color color;
 }

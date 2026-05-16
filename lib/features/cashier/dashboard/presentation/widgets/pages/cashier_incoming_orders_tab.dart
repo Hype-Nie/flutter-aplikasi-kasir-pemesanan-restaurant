@@ -1,111 +1,213 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Incoming Orders tab – lists orders that have just arrived from customers.
-/// Template only; real data will be connected later.
-class CashierIncomingOrdersTab extends StatelessWidget {
+import 'package:restaurant/shared/models/order.dart';
+import '../../riverpod/cashier_dashboard_provider.dart';
+
+/// Incoming Orders tab – lists pending orders from customers.
+class CashierIncomingOrdersTab extends ConsumerStatefulWidget {
   const CashierIncomingOrdersTab({super.key});
 
-  static const _accent = Color(0xFFFF4D06);
+  @override
+  ConsumerState<CashierIncomingOrdersTab> createState() =>
+      _CashierIncomingOrdersTabState();
+}
+
+class _CashierIncomingOrdersTabState
+    extends ConsumerState<CashierIncomingOrdersTab> {
+  int _selectedFilter = 0;
+  static const _filters = ['All', 'Dine-in', 'Takeaway'];
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      key: const ValueKey('incoming'),
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-      children: [
-        // --- Search / filter bar ---
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F0),
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: const TextField(
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              prefixIcon:
-                  Icon(Icons.search, size: 24, color: Colors.black54),
-              hintText: 'Search order...',
-              hintStyle: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF848484),
-              ),
-              contentPadding: EdgeInsets.symmetric(vertical: 14),
-              border: InputBorder.none,
+    final state = ref.watch(cashierDashboardProvider);
+    final isLoading = state.status == CashierDashboardStatus.loading;
+    var pendingOrders = state.pendingOrders;
+
+    // Apply filter
+    if (_selectedFilter == 1) {
+      pendingOrders = pendingOrders
+          .where((o) => o.orderType == 'dine_in')
+          .toList();
+    } else if (_selectedFilter == 2) {
+      pendingOrders = pendingOrders
+          .where((o) => o.orderType == 'takeaway')
+          .toList();
+    }
+
+    return RefreshIndicator(
+      color: const Color(0xFFFF4D06),
+      onRefresh: () =>
+          ref.read(cashierDashboardProvider.notifier).fetchOrders(),
+      child: ListView(
+        key: const ValueKey('incoming'),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+        children: [
+          // --- Filter chips ---
+          SizedBox(
+            height: 40,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _filters.length,
+              separatorBuilder: (_, index) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final active = i == _selectedFilter;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedFilter = i),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: active ? const Color(0xFFFF4D06) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: active
+                            ? const Color(0xFFFF4D06)
+                            : const Color(0xFFD0D0D0),
+                      ),
+                    ),
+                    child: Text(
+                      _filters[i],
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: active ? Colors.white : const Color(0xFF8B8B8B),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-        ),
-        const SizedBox(height: 18),
+          const SizedBox(height: 18),
 
-        // --- Filter chips ---
-        SizedBox(
-          height: 40,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _FilterChip(label: 'All', selected: true, accent: _accent),
-              const SizedBox(width: 8),
-              _FilterChip(label: 'Dine-in', selected: false, accent: _accent),
-              const SizedBox(width: 8),
-              _FilterChip(label: 'Takeaway', selected: false, accent: _accent),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // --- Incoming order cards ---
-        ...List.generate(5, (i) => _IncomingOrderCard(index: i)),
-      ],
+          if (isLoading && state.orders.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFFFF4D06)),
+              ),
+            )
+          else if (pendingOrders.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.inbox_rounded,
+                      size: 56,
+                      color: const Color(0xFFFF4D06).withValues(alpha: 0.25),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No incoming orders',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...pendingOrders.map(
+              (order) => _IncomingOrderCard(
+                order: order,
+                onAccept: () async {
+                  final success = await ref
+                      .read(cashierDashboardProvider.notifier)
+                      .updateOrderStatus(order.id, 'accepted');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Order ${order.orderNumber} accepted'
+                              : 'Failed to accept order',
+                        ),
+                        backgroundColor: success
+                            ? const Color(0xFF2ECC71)
+                            : const Color(0xFFE74C3C),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                onDecline: () async {
+                  final success = await ref
+                      .read(cashierDashboardProvider.notifier)
+                      .updateOrderStatus(order.id, 'cancelled');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Order ${order.orderNumber} declined'
+                              : 'Failed to decline order',
+                        ),
+                        backgroundColor: success
+                            ? const Color(0xFFF39C12)
+                            : const Color(0xFFE74C3C),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.accent,
+class _IncomingOrderCard extends StatefulWidget {
+  const _IncomingOrderCard({
+    required this.order,
+    required this.onAccept,
+    required this.onDecline,
   });
 
-  final String label;
-  final bool selected;
-  final Color accent;
+  final Order order;
+  final Future<void> Function() onAccept;
+  final Future<void> Function() onDecline;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? accent : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: selected ? accent : const Color(0xFFD0D0D0),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: selected ? Colors.white : const Color(0xFF8B8B8B),
-        ),
-      ),
-    );
-  }
+  State<_IncomingOrderCard> createState() => _IncomingOrderCardState();
 }
 
-class _IncomingOrderCard extends StatelessWidget {
-  const _IncomingOrderCard({required this.index});
-
-  final int index;
+class _IncomingOrderCardState extends State<_IncomingOrderCard> {
+  bool _loading = false;
 
   static const _accent = Color(0xFFFF4D06);
-  static const _types = ['Dine-in', 'Takeaway', 'Dine-in', 'Takeaway', 'Dine-in'];
+
+  String _formatPrice(double price) {
+    return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+  }
+
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return '';
+    final l = dt.toLocal();
+    return '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final type = _types[index % _types.length];
-    final isDineIn = type == 'Dine-in';
+    final isDineIn = widget.order.orderType == 'dine_in';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -134,7 +236,9 @@ class _IncomingOrderCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  isDineIn ? Icons.table_restaurant_rounded : Icons.takeout_dining_rounded,
+                  isDineIn
+                      ? Icons.table_restaurant_rounded
+                      : Icons.takeout_dining_rounded,
                   color: _accent,
                   size: 20,
                 ),
@@ -145,7 +249,7 @@ class _IncomingOrderCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Order #${2000 + index}',
+                      widget.order.orderNumber,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -154,7 +258,7 @@ class _IncomingOrderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isDineIn ? 'Table ${index + 1}' : 'Takeaway',
+                      '${isDineIn ? 'Dine-in' : 'Takeaway'} · ${_formatTime(widget.order.createdAt)}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -165,7 +269,10 @@ class _IncomingOrderCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF39C12).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -185,12 +292,12 @@ class _IncomingOrderCard extends StatelessWidget {
           Container(height: 1, color: const Color(0xFFF0F0F0)),
           const SizedBox(height: 12),
 
-          // Item summary placeholder
-          const Text(
-            '— item(s) · Total: —',
-            style: TextStyle(
+          // Total
+          Text(
+            'Total: ${_formatPrice(widget.order.totalAmount)}',
+            style: const TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: Color(0xFF8B8B8B),
             ),
           ),
@@ -203,7 +310,13 @@ class _IncomingOrderCard extends StatelessWidget {
                 child: SizedBox(
                   height: 40,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: _loading
+                        ? null
+                        : () async {
+                            setState(() => _loading = true);
+                            await widget.onDecline();
+                            if (mounted) setState(() => _loading = false);
+                          },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFD0D0D0)),
                       shape: RoundedRectangleBorder(
@@ -226,7 +339,13 @@ class _IncomingOrderCard extends StatelessWidget {
                 child: SizedBox(
                   height: 40,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: _loading
+                        ? null
+                        : () async {
+                            setState(() => _loading = true);
+                            await widget.onAccept();
+                            if (mounted) setState(() => _loading = false);
+                          },
                     style: ElevatedButton.styleFrom(
                       elevation: 0,
                       backgroundColor: _accent,

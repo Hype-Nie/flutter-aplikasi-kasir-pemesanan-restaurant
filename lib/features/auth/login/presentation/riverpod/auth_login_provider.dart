@@ -59,6 +59,7 @@ class AuthLoginNotifier extends Notifier<AuthLoginState> {
       await TokenStorage.saveToken(token);
       await TokenStorage.saveRole(user.role);
       await TokenStorage.saveUserId(user.id);
+      await TokenStorage.saveName(user.name);
 
       state = state.copyWith(
         status: AuthLoginStatus.success,

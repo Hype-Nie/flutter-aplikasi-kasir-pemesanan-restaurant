@@ -24,7 +24,7 @@ class _CashierDashboardPageState extends ConsumerState<CashierDashboardPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(cashierDashboardProvider.notifier).started();
+      ref.read(cashierDashboardProvider.notifier).fetchOrders();
     });
   }
 
@@ -54,7 +54,9 @@ class _CashierDashboardViewState extends State<_CashierDashboardView> {
   Widget _buildCurrentTab() {
     switch (_selectedBottomNav) {
       case 0:
-        return const CashierHomeTab();
+        return CashierHomeTab(
+          onSwitchTab: (i) => setState(() => _selectedBottomNav = i),
+        );
       case 1:
         return const CashierIncomingOrdersTab();
       case 2:
@@ -62,7 +64,9 @@ class _CashierDashboardViewState extends State<_CashierDashboardView> {
       case 3:
         return const CashierOrderHistoryTab();
       default:
-        return const CashierHomeTab();
+        return CashierHomeTab(
+          onSwitchTab: (i) => setState(() => _selectedBottomNav = i),
+        );
     }
   }
 
