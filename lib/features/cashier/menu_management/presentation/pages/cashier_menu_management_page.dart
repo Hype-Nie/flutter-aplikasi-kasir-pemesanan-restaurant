@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:restaurant/config/strings/cashier_strings.dart';
+import 'package:restaurant/shared/models/category.dart';
+import 'package:restaurant/shared/models/menu.dart';
 import '../riverpod/cashier_menu_management_provider.dart';
 
 class CashierMenuManagementPage extends ConsumerStatefulWidget {
@@ -18,19 +21,78 @@ class _CashierMenuManagementPageState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(cashierMenuManagementProvider.notifier).started();
+      ref.read(cashierMenuManagementProvider.notifier).fetchMenus();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(cashierMenuManagementProvider);
-    return const _CashierMenuManagementView();
+    final state = ref.watch(cashierMenuManagementProvider);
+
+    ref.listen(cashierMenuManagementProvider, (prev, next) {
+      if (next.status == CashierMenuManagementStatus.failure &&
+          next.message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
+      }
+      if (next.status == CashierMenuManagementStatus.success &&
+          next.message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: const Color(0xFF2ECC71),
+          ),
+        );
+      }
+    });
+
+    return _CashierMenuManagementView(
+      state: state,
+      onRefresh: () =>
+          ref.read(cashierMenuManagementProvider.notifier).fetchMenus(),
+      onCreate: ({
+        required int categoryId,
+        required String name,
+        required int price,
+        required bool isAvailable,
+      }) =>
+          ref.read(cashierMenuManagementProvider.notifier).createMenu(
+                categoryId: categoryId,
+                name: name,
+                price: price,
+                isAvailable: isAvailable,
+              ),
+      onUpdatePrice: (int id, int price) =>
+          ref.read(cashierMenuManagementProvider.notifier).updateMenu(id, price: price),
+      onDelete: (int id) =>
+          ref.read(cashierMenuManagementProvider.notifier).deleteMenu(id),
+    );
   }
 }
 
 class _CashierMenuManagementView extends StatefulWidget {
-  const _CashierMenuManagementView();
+  const _CashierMenuManagementView({
+    required this.state,
+    required this.onRefresh,
+    required this.onCreate,
+    required this.onUpdatePrice,
+    required this.onDelete,
+  });
+
+  final CashierMenuManagementState state;
+  final Future<void> Function() onRefresh;
+  final Future<bool> Function({
+    required int categoryId,
+    required String name,
+    required int price,
+    required bool isAvailable,
+  }) onCreate;
+  final Future<bool> Function(int id, int price) onUpdatePrice;
+  final Future<bool> Function(int id) onDelete;
 
   @override
   State<_CashierMenuManagementView> createState() =>
@@ -42,9 +104,17 @@ class _CashierMenuManagementViewState
   static const _bg = Color(0xFFE7E7E7);
   static const _accent = Color(0xFFFF4D06);
 
-  int _selectedCategory = 0;
-  final _categories = const ['All', 'Foods', 'Drinks', 'Snacks', 'Sauce'];
+  int _selectedCategoryIndex = 0;
   final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.toLowerCase());
+    });
+  }
 
   @override
   void dispose() {
@@ -52,8 +122,42 @@ class _CashierMenuManagementViewState
     super.dispose();
   }
 
+  List<Menu> get _filteredMenus {
+    var menus = widget.state.menus;
+    // Filter by category
+    if (_selectedCategoryIndex > 0 &&
+        _selectedCategoryIndex <= widget.state.categories.length) {
+      final selectedCategory =
+          widget.state.categories[_selectedCategoryIndex - 1];
+      menus = menus.where((m) => m.categoryId == selectedCategory.id).toList();
+    }
+    // Filter by search
+    if (_searchQuery.isNotEmpty) {
+      menus = menus
+          .where((m) => m.name.toLowerCase().contains(_searchQuery))
+          .toList();
+    }
+    return menus;
+  }
+
+  String _categoryNameForMenu(Menu menu) {
+    final cat = widget.state.categories
+        .where((c) => c.id == menu.categoryId)
+        .firstOrNull;
+    return cat?.name ?? 'Unknown';
+  }
+
+  String _formatPrice(double price) {
+    return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isLoading =
+        widget.state.status == CashierMenuManagementStatus.loading;
+    final filteredMenus = _filteredMenus;
+    final categoryNames = ['All', ...widget.state.categories.map((c) => c.name)];
+
     return Scaffold(
       backgroundColor: _bg,
       floatingActionButton: TweenAnimationBuilder<double>(
@@ -115,12 +219,13 @@ class _CashierMenuManagementViewState
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 18),
-                  itemCount: _categories.length,
+                  itemCount: categoryNames.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
-                    final active = i == _selectedCategory;
+                    final active = i == _selectedCategoryIndex;
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedCategory = i),
+                      onTap: () =>
+                          setState(() => _selectedCategoryIndex = i),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeOut,
@@ -132,11 +237,12 @@ class _CashierMenuManagementViewState
                           color: active ? _accent : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: active ? _accent : const Color(0xFFD0D0D0),
+                            color:
+                                active ? _accent : const Color(0xFFD0D0D0),
                           ),
                         ),
                         child: Text(
-                          _categories[i],
+                          categoryNames[i],
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -155,7 +261,76 @@ class _CashierMenuManagementViewState
             const SizedBox(height: 14),
 
             // --- Menu grid ---
-            Expanded(child: _MenuGrid(accent: _accent)),
+            Expanded(
+              child: isLoading && widget.state.menus.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(color: _accent),
+                    )
+                  : filteredMenus.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.restaurant_menu_rounded,
+                                size: 64,
+                                color: _accent.withValues(alpha: 0.30),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'No menus found',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          color: _accent,
+                          onRefresh: widget.onRefresh,
+                          child: GridView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding:
+                                const EdgeInsets.fromLTRB(18, 4, 18, 90),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.82,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                            ),
+                            itemCount: filteredMenus.length,
+                            itemBuilder: (_, i) {
+                              return TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0, end: 1),
+                                duration:
+                                    Duration(milliseconds: 350 + (i * 80)),
+                                curve: Curves.easeOutCubic,
+                                builder: (_, value, child) => Opacity(
+                                  opacity: value,
+                                  child: Transform.translate(
+                                    offset: Offset(0, 30 * (1 - value)),
+                                    child: child,
+                                  ),
+                                ),
+                                child: _MenuCard(
+                                  menu: filteredMenus[i],
+                                  categoryName: _categoryNameForMenu(
+                                      filteredMenus[i]),
+                                  formattedPrice: _formatPrice(
+                                      filteredMenus[i].price),
+                                  accent: _accent,
+                                  onTap: () => _showMenuDetailSheet(
+                                      context, filteredMenus[i]),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+            ),
           ],
         ),
       ),
@@ -191,8 +366,8 @@ class _CashierMenuManagementViewState
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.filter_list_rounded, size: 22, color: _accent),
+              onPressed: widget.onRefresh,
+              icon: Icon(Icons.refresh_rounded, size: 22, color: _accent),
             ),
           ),
         ],
@@ -201,68 +376,332 @@ class _CashierMenuManagementViewState
   }
 
   void _showAddMenuSheet(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    int? selectedCategoryId;
+    bool isAvailable = true;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => const _AddMenuSheet(),
-    );
-  }
-}
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD0D0D0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Add New Menu',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF121212),
+                  ),
+                ),
+                const SizedBox(height: 22),
 
-// ---------- Menu Grid ----------
+                // Category dropdown
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: selectedCategoryId,
+                      hint: const Text(
+                        'Select Category',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF8B8B8B),
+                        ),
+                      ),
+                      isExpanded: true,
+                      items: widget.state.categories.map((cat) {
+                        return DropdownMenuItem<int>(
+                          value: cat.id,
+                          child: Text(
+                            cat.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setSheetState(() => selectedCategoryId = value);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-class _MenuGrid extends StatelessWidget {
-  const _MenuGrid({required this.accent});
+                _SheetTextField(label: 'Menu Name', controller: nameCtrl),
+                const SizedBox(height: 12),
+                _SheetTextField(
+                  label: 'Price',
+                  controller: priceCtrl,
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
 
-  final Color accent;
+                // Availability toggle
+                Row(
+                  children: [
+                    const Text(
+                      'Available',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF121212),
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: isAvailable,
+                      activeColor: _accent,
+                      onChanged: (v) {
+                        setSheetState(() => isAvailable = v);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
 
-  static const _items = [
-    _MenuItem('Nasi Goreng', 'Rp 25.000', 'Foods', true),
-    _MenuItem('Mie Ayam', 'Rp 20.000', 'Foods', true),
-    _MenuItem('Es Teh Manis', 'Rp 8.000', 'Drinks', true),
-    _MenuItem('Ayam Geprek', 'Rp 22.000', 'Foods', false),
-    _MenuItem('Jus Alpukat', 'Rp 15.000', 'Drinks', true),
-    _MenuItem('Kerupuk', 'Rp 5.000', 'Snacks', true),
-    _MenuItem('Sate Ayam', 'Rp 28.000', 'Foods', true),
-    _MenuItem('Sambal Terasi', 'Rp 3.000', 'Sauce', true),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(18, 4, 18, 90),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.82,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: _items.length,
-      itemBuilder: (_, i) {
-        return TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: Duration(milliseconds: 350 + (i * 80)),
-          curve: Curves.easeOutCubic,
-          builder: (_, value, child) => Opacity(
-            opacity: value,
-            child: Transform.translate(
-              offset: Offset(0, 30 * (1 - value)),
-              child: child,
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameCtrl.text.trim().isEmpty ||
+                          priceCtrl.text.trim().isEmpty ||
+                          selectedCategoryId == null) return;
+                      final price = int.tryParse(priceCtrl.text.trim());
+                      if (price == null) return;
+                      final success = await widget.onCreate(
+                        categoryId: selectedCategoryId!,
+                        name: nameCtrl.text.trim(),
+                        price: price,
+                        isAvailable: isAvailable,
+                      );
+                      if (success && ctx.mounted) Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: _accent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save Menu',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          child: _MenuCard(item: _items[i], accent: accent),
-        );
-      },
+        ),
+      ),
+    );
+  }
+
+  void _showMenuDetailSheet(BuildContext context, Menu menu) {
+    final priceCtrl =
+        TextEditingController(text: menu.price.toStringAsFixed(0));
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD0D0D0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                menu.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF121212),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _categoryNameForMenu(menu),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF8B8B8B),
+                ),
+              ),
+              const SizedBox(height: 22),
+              _SheetTextField(
+                label: 'Price',
+                controller: priceCtrl,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 22),
+              Row(
+                children: [
+                  // Update button
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final price =
+                              int.tryParse(priceCtrl.text.trim());
+                          if (price == null) return;
+                          final success =
+                              await widget.onUpdatePrice(menu.id, price);
+                          if (success && ctx.mounted) Navigator.pop(ctx);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: _accent,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                        child: const Text(
+                          'Update Price',
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Delete button
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        _showDeleteDialog(context, menu);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor:
+                            const Color(0xFFE74C3C).withValues(alpha: 0.10),
+                        foregroundColor: const Color(0xFFE74C3C),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                      ),
+                      child: const Icon(Icons.delete_outline_rounded),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, Menu menu) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          CashierStrings.deleteConfirmTitle,
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+        ),
+        content: Text(
+          '${CashierStrings.deleteConfirmMessage}\n\nMenu: ${menu.name}',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF8B8B8B)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              CashierStrings.cancel,
+              style: TextStyle(color: Color(0xFF8B8B8B)),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.onDelete(menu.id);
+            },
+            child: const Text(
+              CashierStrings.delete,
+              style: TextStyle(
+                color: Color(0xFFE74C3C),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _MenuCard extends StatelessWidget {
-  const _MenuCard({required this.item, required this.accent});
+// ---------- Menu Card ----------
 
-  final _MenuItem item;
+class _MenuCard extends StatelessWidget {
+  const _MenuCard({
+    required this.menu,
+    required this.categoryName,
+    required this.formattedPrice,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final Menu menu;
+  final String categoryName;
+  final String formattedPrice;
   final Color accent;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -283,7 +722,7 @@ class _MenuCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
           borderRadius: BorderRadius.circular(22),
-          onTap: () {},
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -310,7 +749,7 @@ class _MenuCard extends StatelessWidget {
 
                 // Name
                 Text(
-                  item.name,
+                  menu.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -325,7 +764,7 @@ class _MenuCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      item.price,
+                      formattedPrice,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -338,7 +777,7 @@ class _MenuCard extends StatelessWidget {
                       height: 8,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: item.available
+                        color: menu.isAvailable
                             ? const Color(0xFF2ECC71)
                             : const Color(0xFFE74C3C),
                       ),
@@ -358,7 +797,7 @@ class _MenuCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    item.category,
+                    categoryName,
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -375,122 +814,27 @@ class _MenuCard extends StatelessWidget {
   }
 }
 
-// ---------- Add Menu Sheet ----------
-
-class _AddMenuSheet extends StatelessWidget {
-  const _AddMenuSheet();
-
-  static const _accent = Color(0xFFFF4D06);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD0D0D0),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Add New Menu',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF121212),
-            ),
-          ),
-          const SizedBox(height: 22),
-
-          // Image placeholder
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: _accent.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: _accent.withValues(alpha: 0.20),
-                style: BorderStyle.solid,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.add_photo_alternate_outlined,
-                  size: 36,
-                  color: _accent.withValues(alpha: 0.50),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Upload Photo',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: _accent.withValues(alpha: 0.60),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Text fields
-          _SheetTextField(label: 'Menu Name'),
-          const SizedBox(height: 12),
-          _SheetTextField(label: 'Price'),
-          const SizedBox(height: 12),
-          _SheetTextField(label: 'Category'),
-          const SizedBox(height: 12),
-          _SheetTextField(label: 'Description', maxLines: 3),
-          const SizedBox(height: 22),
-
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: _accent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                ),
-              ),
-              child: const Text(
-                'Save Menu',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// ---------- Sheet Text Field ----------
 
 class _SheetTextField extends StatelessWidget {
-  const _SheetTextField({required this.label, this.maxLines = 1});
+  const _SheetTextField({
+    required this.label,
+    this.controller,
+    this.maxLines = 1,
+    this.keyboardType,
+  });
 
   final String label;
+  final TextEditingController? controller;
   final int maxLines;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       maxLines: maxLines,
+      keyboardType: keyboardType,
       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
@@ -516,14 +860,4 @@ class _SheetTextField extends StatelessWidget {
       ),
     );
   }
-}
-
-// ---------- Data class ----------
-
-class _MenuItem {
-  const _MenuItem(this.name, this.price, this.category, this.available);
-  final String name;
-  final String price;
-  final String category;
-  final bool available;
 }

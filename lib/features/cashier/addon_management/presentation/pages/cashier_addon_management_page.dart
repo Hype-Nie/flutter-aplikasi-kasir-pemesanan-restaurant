@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:restaurant/config/strings/cashier_strings.dart';
+import 'package:restaurant/shared/models/addon.dart';
 import '../riverpod/cashier_addon_management_provider.dart';
 
 class CashierAddonManagementPage extends ConsumerStatefulWidget {
@@ -18,19 +20,74 @@ class _CashierAddonManagementPageState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(cashierAddonManagementProvider.notifier).started();
+      ref.read(cashierAddonManagementProvider.notifier).fetchAddons();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(cashierAddonManagementProvider);
-    return const _CashierAddonManagementView();
+    final state = ref.watch(cashierAddonManagementProvider);
+
+    ref.listen(cashierAddonManagementProvider, (prev, next) {
+      if (next.status == CashierAddonManagementStatus.failure &&
+          next.message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
+      }
+      if (next.status == CashierAddonManagementStatus.success &&
+          next.message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: const Color(0xFF2ECC71),
+          ),
+        );
+      }
+    });
+
+    return _CashierAddonManagementView(
+      state: state,
+      onRefresh: () =>
+          ref.read(cashierAddonManagementProvider.notifier).fetchAddons(),
+      onCreate: ({
+        required String name,
+        required int price,
+        required String type,
+        required bool isAvailable,
+      }) =>
+          ref.read(cashierAddonManagementProvider.notifier).createAddon(
+                name: name,
+                price: price,
+                type: type,
+                isAvailable: isAvailable,
+              ),
+      onDelete: (int id) =>
+          ref.read(cashierAddonManagementProvider.notifier).deleteAddon(id),
+    );
   }
 }
 
 class _CashierAddonManagementView extends StatefulWidget {
-  const _CashierAddonManagementView();
+  const _CashierAddonManagementView({
+    required this.state,
+    required this.onRefresh,
+    required this.onCreate,
+    required this.onDelete,
+  });
+
+  final CashierAddonManagementState state;
+  final Future<void> Function() onRefresh;
+  final Future<bool> Function({
+    required String name,
+    required int price,
+    required String type,
+    required bool isAvailable,
+  }) onCreate;
+  final Future<bool> Function(int id) onDelete;
 
   @override
   State<_CashierAddonManagementView> createState() =>
@@ -46,18 +103,22 @@ class _CashierAddonManagementViewState
   late final AnimationController _animCtrl;
   int _selectedTab = 0;
 
-  final _tabs = const ['All', 'Toppings', 'Extra', 'Sauce'];
+  List<String> get _tabs {
+    final types = widget.state.addons.map((a) => a.type).toSet().toList();
+    return ['All', ...types];
+  }
 
-  final _addons = const <_AddonItem>[
-    _AddonItem('Extra Cheese', 'Rp 5.000', 'Toppings', true),
-    _AddonItem('Telur Ceplok', 'Rp 4.000', 'Extra', true),
-    _AddonItem('Sambal Matah', 'Rp 3.000', 'Sauce', true),
-    _AddonItem('Extra Nasi', 'Rp 5.000', 'Extra', false),
-    _AddonItem('Mushroom', 'Rp 6.000', 'Toppings', true),
-    _AddonItem('Kecap Manis', 'Rp 2.000', 'Sauce', true),
-    _AddonItem('Extra Ayam', 'Rp 8.000', 'Extra', true),
-    _AddonItem('Mayonnaise', 'Rp 3.000', 'Sauce', false),
-  ];
+  List<Addon> get _filteredAddons {
+    if (_selectedTab == 0) return widget.state.addons;
+    final tabs = _tabs;
+    if (_selectedTab >= tabs.length) return widget.state.addons;
+    final selectedType = tabs[_selectedTab];
+    return widget.state.addons.where((a) => a.type == selectedType).toList();
+  }
+
+  String _formatPrice(double price) {
+    return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+  }
 
   @override
   void initState() {
@@ -76,6 +137,11 @@ class _CashierAddonManagementViewState
 
   @override
   Widget build(BuildContext context) {
+    final isLoading =
+        widget.state.status == CashierAddonManagementStatus.loading;
+    final filtered = _filteredAddons;
+    final tabs = _tabs;
+
     return Scaffold(
       backgroundColor: _bg,
       floatingActionButton: TweenAnimationBuilder<double>(
@@ -101,7 +167,7 @@ class _CashierAddonManagementViewState
                 height: 40,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: _tabs.length,
+                  itemCount: tabs.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) {
                     final active = i == _selectedTab;
@@ -126,7 +192,7 @@ class _CashierAddonManagementViewState
                           ),
                         ),
                         child: Text(
-                          _tabs[i],
+                          tabs[i],
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -145,63 +211,75 @@ class _CashierAddonManagementViewState
 
             // --- Addon list ---
             Expanded(
-              child: AnimatedBuilder(
-                animation: _animCtrl,
-                builder: (_, __) {
-                  final filtered = _selectedTab == 0
-                      ? _addons
-                      : _addons
-                            .where((a) => a.type == _tabs[_selectedTab])
-                            .toList();
-
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.inbox_rounded,
-                            size: 64,
-                            color: _accent.withValues(alpha: 0.25),
+              child: isLoading && widget.state.addons.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(color: _accent),
+                    )
+                  : filtered.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.inbox_rounded,
+                                size: 64,
+                                color: _accent.withValues(alpha: 0.25),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'No addons found',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF8B8B8B),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'No addons found',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF8B8B8B),
-                            ),
+                        )
+                      : RefreshIndicator(
+                          color: _accent,
+                          onRefresh: widget.onRefresh,
+                          child: AnimatedBuilder(
+                            animation: _animCtrl,
+                            builder: (_, __) {
+                              return ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding:
+                                    const EdgeInsets.fromLTRB(18, 0, 18, 90),
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 10),
+                                itemBuilder: (_, i) {
+                                  final delay =
+                                      (i / filtered.length).clamp(0.0, 1.0);
+                                  final curved = CurvedAnimation(
+                                    parent: _animCtrl,
+                                    curve: Interval(delay, 1.0,
+                                        curve: Curves.easeOutCubic),
+                                  );
+                                  return FadeTransition(
+                                    opacity: curved,
+                                    child: SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0, 0.12),
+                                        end: Offset.zero,
+                                      ).animate(curved),
+                                      child: _AddonTile(
+                                        addon: filtered[i],
+                                        formattedPrice:
+                                            _formatPrice(filtered[i].price),
+                                        accent: _accent,
+                                        onDelete: () => _showDeleteDialog(
+                                            context, filtered[i]),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) {
-                      final delay = (i / filtered.length).clamp(0.0, 1.0);
-                      final curved = CurvedAnimation(
-                        parent: _animCtrl,
-                        curve: Interval(delay, 1.0, curve: Curves.easeOutCubic),
-                      );
-                      return FadeTransition(
-                        opacity: curved,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.12),
-                            end: Offset.zero,
-                          ).animate(curved),
-                          child: _AddonTile(item: filtered[i], accent: _accent),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
             ),
           ],
         ),
@@ -238,8 +316,8 @@ class _CashierAddonManagementViewState
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.sort_rounded, size: 22, color: _accent),
+              onPressed: widget.onRefresh,
+              icon: Icon(Icons.refresh_rounded, size: 22, color: _accent),
             ),
           ),
         ],
@@ -248,64 +326,180 @@ class _CashierAddonManagementViewState
   }
 
   void _showAddSheet(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    String selectedType = 'Extra';
+    bool isAvailable = true;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD0D0D0),
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'Add New Addon',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF121212),
-              ),
-            ),
-            const SizedBox(height: 22),
-            _SheetTextField(label: 'Addon Name'),
-            const SizedBox(height: 12),
-            _SheetTextField(label: 'Price'),
-            const SizedBox(height: 12),
-            _SheetTextField(label: 'Type (Toppings / Extra / Sauce)'),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  elevation: 0,
-                  backgroundColor: _accent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD0D0D0),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                child: const Text(
-                  'Save Addon',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                const SizedBox(height: 20),
+                const Text(
+                  'Add New Addon',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF121212),
+                  ),
                 ),
+                const SizedBox(height: 22),
+                _SheetTextField(label: 'Addon Name', controller: nameCtrl),
+                const SizedBox(height: 12),
+                _SheetTextField(
+                  label: 'Price',
+                  controller: priceCtrl,
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+
+                // Type dropdown
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedType,
+                      isExpanded: true,
+                      items: const [
+                        DropdownMenuItem(value: 'Extra', child: Text('Extra')),
+                        DropdownMenuItem(
+                            value: 'Toppings', child: Text('Toppings')),
+                        DropdownMenuItem(value: 'Sauce', child: Text('Sauce')),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) setSheetState(() => selectedType = v);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Availability toggle
+                Row(
+                  children: [
+                    const Text(
+                      'Available',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF121212),
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch(
+                      value: isAvailable,
+                      activeColor: _accent,
+                      onChanged: (v) {
+                        setSheetState(() => isAvailable = v);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameCtrl.text.trim().isEmpty ||
+                          priceCtrl.text.trim().isEmpty) return;
+                      final price = int.tryParse(priceCtrl.text.trim());
+                      if (price == null) return;
+                      final success = await widget.onCreate(
+                        name: nameCtrl.text.trim(),
+                        price: price,
+                        type: selectedType,
+                        isAvailable: isAvailable,
+                      );
+                      if (success && ctx.mounted) Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: _accent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save Addon',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, Addon addon) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          CashierStrings.deleteConfirmTitle,
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+        ),
+        content: Text(
+          '${CashierStrings.deleteConfirmMessage}\n\nAddon: ${addon.name}',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF8B8B8B)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              CashierStrings.cancel,
+              style: TextStyle(color: Color(0xFF8B8B8B)),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await widget.onDelete(addon.id);
+            },
+            child: const Text(
+              CashierStrings.delete,
+              style: TextStyle(
+                color: Color(0xFFE74C3C),
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -314,18 +508,25 @@ class _CashierAddonManagementViewState
 // ---------- Addon Tile ----------
 
 class _AddonTile extends StatelessWidget {
-  const _AddonTile({required this.item, required this.accent});
+  const _AddonTile({
+    required this.addon,
+    required this.formattedPrice,
+    required this.accent,
+    required this.onDelete,
+  });
 
-  final _AddonItem item;
+  final Addon addon;
+  final String formattedPrice;
   final Color accent;
+  final VoidCallback onDelete;
 
   IconData get _typeIcon {
-    switch (item.type) {
-      case 'Toppings':
+    switch (addon.type.toLowerCase()) {
+      case 'toppings':
         return Icons.layers_rounded;
-      case 'Extra':
+      case 'extra':
         return Icons.add_circle_outline_rounded;
-      case 'Sauce':
+      case 'sauce':
         return Icons.water_drop_rounded;
       default:
         return Icons.extension_rounded;
@@ -333,12 +534,12 @@ class _AddonTile extends StatelessWidget {
   }
 
   Color get _typeColor {
-    switch (item.type) {
-      case 'Toppings':
+    switch (addon.type.toLowerCase()) {
+      case 'toppings':
         return const Color(0xFF9B59B6);
-      case 'Extra':
+      case 'extra':
         return const Color(0xFF3498DB);
-      case 'Sauce':
+      case 'sauce':
         return const Color(0xFFE74C3C);
       default:
         return const Color(0xFF8B8B8B);
@@ -380,7 +581,7 @@ class _AddonTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.name,
+                  addon.name,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -391,7 +592,7 @@ class _AddonTile extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      item.price,
+                      formattedPrice,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -409,7 +610,7 @@ class _AddonTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        item.type,
+                        addon.type,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -423,29 +624,24 @@ class _AddonTile extends StatelessWidget {
             ),
           ),
 
-          // Toggle
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 44,
-            height: 26,
+          // Availability indicator + delete
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(13),
-              color: item.available ? accent : const Color(0xFFD0D0D0),
+              shape: BoxShape.circle,
+              color: addon.isAvailable
+                  ? const Color(0xFF2ECC71)
+                  : const Color(0xFFE74C3C),
             ),
-            child: AnimatedAlign(
-              duration: const Duration(milliseconds: 200),
-              alignment: item.available
-                  ? Alignment.centerRight
-                  : Alignment.centerLeft,
-              child: Container(
-                width: 20,
-                height: 20,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                ),
-              ),
+          ),
+          IconButton(
+            onPressed: onDelete,
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              size: 18,
+              color: const Color(0xFFE74C3C).withValues(alpha: 0.60),
             ),
           ),
         ],
@@ -457,13 +653,21 @@ class _AddonTile extends StatelessWidget {
 // ---------- Sheet Text Field ----------
 
 class _SheetTextField extends StatelessWidget {
-  const _SheetTextField({required this.label});
+  const _SheetTextField({
+    required this.label,
+    this.controller,
+    this.keyboardType,
+  });
 
   final String label;
+  final TextEditingController? controller;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
@@ -489,14 +693,4 @@ class _SheetTextField extends StatelessWidget {
       ),
     );
   }
-}
-
-// ---------- Data ----------
-
-class _AddonItem {
-  const _AddonItem(this.name, this.price, this.type, this.available);
-  final String name;
-  final String price;
-  final String type;
-  final bool available;
 }
