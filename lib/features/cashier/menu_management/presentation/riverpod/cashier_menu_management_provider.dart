@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:restaurant/config/strings/cashier_strings.dart';
 import 'package:restaurant/core/network/dio_client.dart';
@@ -60,8 +63,9 @@ class CashierMenuManagementNotifier
       final menusData = responses[0].data as List<dynamic>;
       final categoriesData = responses[1].data as List<dynamic>;
 
-      final menus =
-          menusData.map((e) => Menu.fromJson(e as Map<String, dynamic>)).toList();
+      final menus = menusData
+          .map((e) => Menu.fromJson(e as Map<String, dynamic>))
+          .toList();
       final categories = categoriesData
           .map((e) => Category.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -76,7 +80,9 @@ class CashierMenuManagementNotifier
         status: CashierMenuManagementStatus.failure,
         message: _mapError(e, CashierStrings.menuFetchError),
       );
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('[MenuManagement] fetchMenus unexpected error: $e');
+      debugPrint('[MenuManagement] stackTrace: $stackTrace');
       state = state.copyWith(
         status: CashierMenuManagementStatus.failure,
         message: CashierStrings.unexpectedError,
@@ -89,6 +95,8 @@ class CashierMenuManagementNotifier
     required String name,
     required int price,
     required bool isAvailable,
+    String? description,
+    XFile? imageFile,
   }) async {
     state = state.copyWith(
       status: CashierMenuManagementStatus.loading,
@@ -96,12 +104,31 @@ class CashierMenuManagementNotifier
     );
 
     try {
-      await DioClient.instance.post('/api/menus', data: {
+      final body = <String, dynamic>{
         'category_id': categoryId,
         'name': name,
         'price': price,
-        'is_available': isAvailable,
-      });
+        'is_available': isAvailable ? 1 : 0,
+      };
+      if (description != null && description.isNotEmpty) {
+        body['description'] = description;
+      }
+      if (imageFile != null) {
+        final mime = _mimeFromPath(imageFile.path);
+        body['image'] = await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.name,
+          contentType: mime,
+        );
+        debugPrint('[MenuManagement] createMenu with image: ${imageFile.name} (${mime.mimeType})');
+        await DioClient.instance.post(
+          '/api/menus',
+          data: FormData.fromMap(body),
+        );
+      } else {
+        debugPrint('[MenuManagement] createMenu without image');
+        await DioClient.instance.post('/api/menus', data: body);
+      }
 
       state = state.copyWith(
         status: CashierMenuManagementStatus.success,
@@ -111,21 +138,32 @@ class CashierMenuManagementNotifier
       await fetchMenus();
       return true;
     } on DioException catch (e) {
+      debugPrint('[MenuManagement] createMenu DioException: ${e.response?.statusCode} ${e.response?.data}');
       state = state.copyWith(
         status: CashierMenuManagementStatus.failure,
         message: _mapError(e, CashierStrings.unexpectedError),
       );
       return false;
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('[MenuManagement] createMenu unexpected error: $e');
+      debugPrint('[MenuManagement] stackTrace: $stackTrace');
       state = state.copyWith(
         status: CashierMenuManagementStatus.failure,
-        message: CashierStrings.unexpectedError,
+        message: 'Error: $e',
       );
       return false;
     }
   }
 
-  Future<bool> updateMenu(int id, {int? price}) async {
+  Future<bool> updateMenu(
+    int id, {
+    int? price,
+    String? description,
+    XFile? imageFile,
+    String? name,
+    int? categoryId,
+    bool? isAvailable,
+  }) async {
     state = state.copyWith(
       status: CashierMenuManagementStatus.loading,
       message: '',
@@ -134,8 +172,29 @@ class CashierMenuManagementNotifier
     try {
       final data = <String, dynamic>{};
       if (price != null) data['price'] = price;
+      if (description != null) data['description'] = description;
+      if (name != null) data['name'] = name;
+      if (categoryId != null) data['category_id'] = categoryId;
+      if (isAvailable != null) data['is_available'] = isAvailable ? 1 : 0;
 
-      await DioClient.instance.put('/api/menus/$id', data: data);
+      if (imageFile != null) {
+        final mime = _mimeFromPath(imageFile.path);
+        data['image'] = await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.name,
+          contentType: mime,
+        );
+        // Laravel doesn't support PUT with multipart, use POST + _method
+        data['_method'] = 'PUT';
+        debugPrint('[MenuManagement] updateMenu $id with image: ${imageFile.name}');
+        await DioClient.instance.post(
+          '/api/menus/$id',
+          data: FormData.fromMap(data),
+        );
+      } else {
+        debugPrint('[MenuManagement] updateMenu $id without image, data: $data');
+        await DioClient.instance.put('/api/menus/$id', data: data);
+      }
 
       state = state.copyWith(
         status: CashierMenuManagementStatus.success,
@@ -145,15 +204,18 @@ class CashierMenuManagementNotifier
       await fetchMenus();
       return true;
     } on DioException catch (e) {
+      debugPrint('[MenuManagement] updateMenu DioException: ${e.response?.statusCode} ${e.response?.data}');
       state = state.copyWith(
         status: CashierMenuManagementStatus.failure,
         message: _mapError(e, CashierStrings.unexpectedError),
       );
       return false;
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('[MenuManagement] updateMenu unexpected error: $e');
+      debugPrint('[MenuManagement] stackTrace: $stackTrace');
       state = state.copyWith(
         status: CashierMenuManagementStatus.failure,
-        message: CashierStrings.unexpectedError,
+        message: 'Error: $e',
       );
       return false;
     }
@@ -176,15 +238,18 @@ class CashierMenuManagementNotifier
       await fetchMenus();
       return true;
     } on DioException catch (e) {
+      debugPrint('[MenuManagement] deleteMenu DioException: ${e.response?.statusCode} ${e.response?.data}');
       state = state.copyWith(
         status: CashierMenuManagementStatus.failure,
         message: _mapError(e, CashierStrings.unexpectedError),
       );
       return false;
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('[MenuManagement] deleteMenu unexpected error: $e');
+      debugPrint('[MenuManagement] stackTrace: $stackTrace');
       state = state.copyWith(
         status: CashierMenuManagementStatus.failure,
-        message: CashierStrings.unexpectedError,
+        message: 'Error: $e',
       );
       return false;
     }
@@ -209,6 +274,23 @@ class CashierMenuManagementNotifier
       if (message is String && message.isNotEmpty) return message;
     }
     return fallback;
+  }
+
+  MediaType _mimeFromPath(String path) {
+    final ext = path.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return MediaType('image', 'jpeg');
+      case 'png':
+        return MediaType('image', 'png');
+      case 'gif':
+        return MediaType('image', 'gif');
+      case 'webp':
+        return MediaType('image', 'webp');
+      default:
+        return MediaType('image', 'jpeg');
+    }
   }
 }
 

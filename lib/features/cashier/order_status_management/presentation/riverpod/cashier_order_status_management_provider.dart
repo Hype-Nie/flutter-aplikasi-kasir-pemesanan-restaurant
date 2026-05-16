@@ -50,13 +50,13 @@ class CashierOrderStatusManagementNotifier
     try {
       final response = await DioClient.instance.get('/api/orders');
       final data = response.data as List<dynamic>;
-      final allOrders =
-          data.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();
+      final allOrders = data
+          .map((e) => Order.fromJson(e as Map<String, dynamic>))
+          .toList();
 
-      // Filter for active orders (not completed/cancelled)
+      // Filter for status flow orders only (accepted/preparing)
       final activeOrders = allOrders
-          .where((o) =>
-              o.status != 'completed' && o.status != 'cancelled')
+          .where((o) => o.status == 'accepted' || o.status == 'preparing')
           .toList();
 
       state = state.copyWith(
@@ -83,9 +83,10 @@ class CashierOrderStatusManagementNotifier
     );
 
     try {
-      await DioClient.instance.put('/api/orders/$id', data: {
-        'status': newStatus,
-      });
+      await DioClient.instance.put(
+        '/api/orders/$id',
+        data: {'status': newStatus},
+      );
 
       state = state.copyWith(
         status: CashierOrderStatusManagementStatus.success,

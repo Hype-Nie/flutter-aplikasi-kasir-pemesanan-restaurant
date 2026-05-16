@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:restaurant/shared/models/order_item.dart';
 
 class Order extends Equatable {
   final int id;
@@ -9,6 +10,7 @@ class Order extends Equatable {
   final String paymentMethod;
   final String deliveryMethod;
   final double totalAmount;
+  final List<OrderItem> items;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -21,6 +23,7 @@ class Order extends Equatable {
     required this.paymentMethod,
     required this.deliveryMethod,
     required this.totalAmount,
+    this.items = const [],
     this.createdAt,
     this.updatedAt,
   });
@@ -35,6 +38,11 @@ class Order extends Equatable {
       paymentMethod: json['payment_method'] as String,
       deliveryMethod: json['delivery_method'] as String,
       totalAmount: double.parse(json['total_amount'].toString()),
+      items: json['order_items'] != null
+          ? (json['order_items'] as List<dynamic>)
+              .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : const [],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -53,6 +61,7 @@ class Order extends Equatable {
         'payment_method': paymentMethod,
         'delivery_method': deliveryMethod,
         'total_amount': totalAmount,
+        'order_items': items.map((e) => e.toJson()).toList(),
         'created_at': createdAt?.toIso8601String(),
         'updated_at': updatedAt?.toIso8601String(),
       };
@@ -67,6 +76,7 @@ class Order extends Equatable {
         paymentMethod,
         deliveryMethod,
         totalAmount,
+        items,
         createdAt,
         updatedAt,
       ];

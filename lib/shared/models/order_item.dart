@@ -4,6 +4,7 @@ class OrderItem extends Equatable {
   final int id;
   final int orderId;
   final int menuId;
+  final String menuName;
   final int quantity;
   final double unitPrice;
   final double subtotal;
@@ -14,6 +15,7 @@ class OrderItem extends Equatable {
     required this.id,
     required this.orderId,
     required this.menuId,
+    this.menuName = 'Unknown',
     required this.quantity,
     required this.unitPrice,
     required this.subtotal,
@@ -26,6 +28,7 @@ class OrderItem extends Equatable {
       id: json['id'] as int,
       orderId: json['order_id'] as int,
       menuId: json['menu_id'] as int,
+      menuName: _parseMenuName(json),
       quantity: json['quantity'] as int,
       unitPrice: double.parse(json['unit_price'].toString()),
       subtotal: double.parse(json['subtotal'].toString()),
@@ -42,6 +45,7 @@ class OrderItem extends Equatable {
         'id': id,
         'order_id': orderId,
         'menu_id': menuId,
+        'menu_name': menuName,
         'quantity': quantity,
         'unit_price': unitPrice,
         'subtotal': subtotal,
@@ -51,5 +55,16 @@ class OrderItem extends Equatable {
 
   @override
   List<Object?> get props =>
-      [id, orderId, menuId, quantity, unitPrice, subtotal, createdAt, updatedAt];
+      [id, orderId, menuId, menuName, quantity, unitPrice, subtotal, createdAt, updatedAt];
+
+  static String _parseMenuName(Map<String, dynamic> json) {
+    // From nested eager-loaded menu object
+    if (json['menu'] is Map) {
+      final menu = json['menu'] as Map<String, dynamic>;
+      if (menu['name'] is String) return menu['name'] as String;
+    }
+    // From flat field
+    if (json['menu_name'] is String) return json['menu_name'] as String;
+    return 'Item #${json['menu_id']}';
+  }
 }
