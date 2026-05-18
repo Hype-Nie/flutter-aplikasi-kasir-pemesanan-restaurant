@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:restaurant/shared/models/order.dart';
+import '../widgets/detail_row.dart';
+import '../widgets/item_row.dart';
 
 class CashierOrderHistoryDetailPage extends StatelessWidget {
   const CashierOrderHistoryDetailPage({super.key, required this.order});
@@ -122,27 +124,27 @@ class CashierOrderHistoryDetailPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _DetailRow(
+                  DetailRow(
                     label: 'Date & Time',
                     value: _formatDate(order.createdAt ?? order.updatedAt),
                   ),
                   const SizedBox(height: 10),
-                  _DetailRow(
+                  DetailRow(
                     label: 'Order Type',
                     value: _toLabel(order.orderType),
                   ),
                   const SizedBox(height: 10),
-                  _DetailRow(
+                  DetailRow(
                     label: 'Payment Method',
                     value: _toLabel(order.paymentMethod),
                   ),
                   const SizedBox(height: 10),
-                  _DetailRow(
+                  DetailRow(
                     label: 'Delivery Method',
                     value: _toLabel(order.deliveryMethod),
                   ),
                   const Divider(height: 24),
-                  _DetailRow(
+                  DetailRow(
                     label: 'Total',
                     value: _formatPrice(order.totalAmount),
                     valueColor: _accent,
@@ -187,7 +189,7 @@ class CashierOrderHistoryDetailPage extends StatelessWidget {
                   : Column(
                       children: [
                         for (var i = 0; i < order.items.length; i++) ...[
-                          _ItemRow(
+                          ItemRow(
                             name: order.items[i].menuName,
                             quantity: order.items[i].quantity,
                             subtotal: _formatPrice(order.items[i].subtotal),
@@ -205,94 +207,3 @@ class CashierOrderHistoryDetailPage extends StatelessWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.valueColor = const Color(0xFF121212),
-    this.bold = false,
-  });
-
-  final String label;
-  final String value;
-  final Color valueColor;
-  final bool bold;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF8B8B8B),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: TextStyle(
-              fontSize: bold ? 16 : 13,
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-              color: valueColor,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ItemRow extends StatelessWidget {
-  const _ItemRow({
-    required this.name,
-    required this.quantity,
-    required this.subtotal,
-  });
-
-  final String name;
-  final int quantity;
-  final String subtotal;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            name,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF121212),
-            ),
-          ),
-        ),
-        Text(
-          'x$quantity',
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF8B8B8B),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          subtotal,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFFFF4D06),
-          ),
-        ),
-      ],
-    );
-  }
-}

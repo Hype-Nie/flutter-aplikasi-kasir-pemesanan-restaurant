@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/config/strings/cashier_strings.dart';
 import 'package:restaurant/shared/models/addon.dart';
 import '../riverpod/cashier_addon_management_provider.dart';
+import '../widgets/addon_tile.dart';
+import '../widgets/addon_sheet_text_field.dart';
 
 class CashierAddonManagementPage extends ConsumerStatefulWidget {
   const CashierAddonManagementPage({super.key});
@@ -140,6 +142,27 @@ class _CashierAddonManagementViewState
 
   String _formatPrice(double price) {
     return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+  }
+
+  int? _parsePrice(String input) {
+    var normalized = input.trim();
+    if (normalized.isEmpty) return null;
+
+    // Normalize common formats: 1.234,56 / 1.234 / 1234.00
+    if (normalized.contains(',') && normalized.contains('.')) {
+      normalized = normalized.replaceAll('.', '').replaceAll(',', '.');
+    } else if (normalized.contains(',') && !normalized.contains('.')) {
+      normalized = normalized.replaceAll(',', '.');
+    } else if (!normalized.contains(',') && normalized.contains('.')) {
+      final parts = normalized.split('.');
+      if (parts.length > 2 || (parts.length == 2 && parts[1].length == 3)) {
+        normalized = normalized.replaceAll('.', '');
+      }
+    }
+
+    final value = double.tryParse(normalized);
+    if (value == null) return null;
+    return value.round();
   }
 
   @override
@@ -287,7 +310,7 @@ class _CashierAddonManagementViewState
                                         begin: const Offset(0, 0.12),
                                         end: Offset.zero,
                                       ).animate(curved),
-                                      child: _AddonTile(
+                                      child: AddonTile(
                                         addon: filtered[i],
                                         formattedPrice:
                                             _formatPrice(filtered[i].price),
@@ -353,6 +376,7 @@ class _CashierAddonManagementViewState
     final priceCtrl = TextEditingController();
     String selectedType = 'Extra';
     bool isAvailable = true;
+    bool isLoading = false;
 
     showModalBottomSheet(
       context: context,
@@ -390,9 +414,9 @@ class _CashierAddonManagementViewState
                   ),
                 ),
                 const SizedBox(height: 22),
-                _SheetTextField(label: 'Addon Name', controller: nameCtrl),
+                AddonSheetTextField(label: 'Addon Name', controller: nameCtrl),
                 const SizedBox(height: 12),
-                _SheetTextField(
+                AddonSheetTextField(
                   label: 'Price',
                   controller: priceCtrl,
                   keyboardType: TextInputType.number,
@@ -452,32 +476,50 @@ class _CashierAddonManagementViewState
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameCtrl.text.trim().isEmpty ||
-                          priceCtrl.text.trim().isEmpty) return;
-                      final price = int.tryParse(priceCtrl.text.trim());
-                      if (price == null) return;
-                      final success = await widget.onCreate(
-                        name: nameCtrl.text.trim(),
-                        price: price,
-                        type: selectedType,
-                        isAvailable: isAvailable,
-                      );
-                      if (success && ctx.mounted) Navigator.pop(ctx);
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            if (nameCtrl.text.trim().isEmpty ||
+                                priceCtrl.text.trim().isEmpty) return;
+                            final price = _parsePrice(priceCtrl.text);
+                            if (price == null) return;
+                            setSheetState(() => isLoading = true);
+                            final success = await widget.onCreate(
+                              name: nameCtrl.text.trim(),
+                              price: price,
+                              type: selectedType,
+                              isAvailable: isAvailable,
+                            );
+                            if (ctx.mounted) {
+                              setSheetState(() => isLoading = false);
+                              if (success) Navigator.pop(ctx);
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       elevation: 0,
                       backgroundColor: _accent,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: _accent.withValues(alpha: 0.50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(22),
                       ),
                     ),
-                    child: const Text(
-                      'Save Addon',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Save Addon',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -490,9 +532,12 @@ class _CashierAddonManagementViewState
 
   void _showEditSheet(BuildContext context, Addon addon) {
     final nameCtrl = TextEditingController(text: addon.name);
-    final priceCtrl = TextEditingController(text: addon.price.toString());
+    final priceCtrl = TextEditingController(
+      text: addon.price.toStringAsFixed(0),
+    );
     String selectedType = addon.type;
     bool isAvailable = addon.isAvailable;
+    bool isLoading = false;
 
     showModalBottomSheet(
       context: context,
@@ -530,9 +575,9 @@ class _CashierAddonManagementViewState
                   ),
                 ),
                 const SizedBox(height: 22),
-                _SheetTextField(label: 'Addon Name', controller: nameCtrl),
+                AddonSheetTextField(label: 'Addon Name', controller: nameCtrl),
                 const SizedBox(height: 12),
-                _SheetTextField(
+                AddonSheetTextField(
                   label: 'Price',
                   controller: priceCtrl,
                   keyboardType: TextInputType.number,
@@ -592,33 +637,51 @@ class _CashierAddonManagementViewState
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameCtrl.text.trim().isEmpty ||
-                          priceCtrl.text.trim().isEmpty) return;
-                      final price = int.tryParse(priceCtrl.text.trim());
-                      if (price == null) return;
-                      final success = await widget.onUpdate(
-                        id: addon.id,
-                        name: nameCtrl.text.trim(),
-                        price: price,
-                        type: selectedType,
-                        isAvailable: isAvailable,
-                      );
-                      if (success && ctx.mounted) Navigator.pop(ctx);
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            if (nameCtrl.text.trim().isEmpty ||
+                                priceCtrl.text.trim().isEmpty) return;
+                            final price = _parsePrice(priceCtrl.text);
+                            if (price == null) return;
+                            setSheetState(() => isLoading = true);
+                            final success = await widget.onUpdate(
+                              id: addon.id,
+                              name: nameCtrl.text.trim(),
+                              price: price,
+                              type: selectedType,
+                              isAvailable: isAvailable,
+                            );
+                            if (ctx.mounted) {
+                              setSheetState(() => isLoading = false);
+                              if (success) Navigator.pop(ctx);
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       elevation: 0,
                       backgroundColor: _accent,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: _accent.withValues(alpha: 0.50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(22),
                       ),
                     ),
-                    child: const Text(
-                      'Update Addon',
-                      style:
-                          TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Update Addon',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -630,240 +693,62 @@ class _CashierAddonManagementViewState
   }
 
   void _showDeleteDialog(BuildContext context, Addon addon) {
+    bool isLoading = false;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          CashierStrings.deleteConfirmTitle,
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
-        ),
-        content: Text(
-          '${CashierStrings.deleteConfirmMessage}\n\nAddon: ${addon.name}',
-          style: const TextStyle(fontSize: 14, color: Color(0xFF8B8B8B)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text(
-              CashierStrings.cancel,
-              style: TextStyle(color: Color(0xFF8B8B8B)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await widget.onDelete(addon.id);
-            },
-            child: const Text(
-              CashierStrings.delete,
-              style: TextStyle(
-                color: Color(0xFFE74C3C),
-                fontWeight: FontWeight.w700,
-              ),
+            title: const Text(
+              CashierStrings.deleteConfirmTitle,
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------- Addon Tile ----------
-
-class _AddonTile extends StatelessWidget {
-  const _AddonTile({
-    required this.addon,
-    required this.formattedPrice,
-    required this.accent,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final Addon addon;
-  final String formattedPrice;
-  final Color accent;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  IconData get _typeIcon {
-    switch (addon.type.toLowerCase()) {
-      case 'toppings':
-        return Icons.layers_rounded;
-      case 'extra':
-        return Icons.add_circle_outline_rounded;
-      case 'sauce':
-        return Icons.water_drop_rounded;
-      default:
-        return Icons.extension_rounded;
-    }
-  }
-
-  Color get _typeColor {
-    switch (addon.type.toLowerCase()) {
-      case 'toppings':
-        return const Color(0xFF9B59B6);
-      case 'extra':
-        return const Color(0xFF3498DB);
-      case 'sauce':
-        return const Color(0xFFE74C3C);
-      default:
-        return const Color(0xFF8B8B8B);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Icon
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: _typeColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(13),
+            content: Text(
+              '${CashierStrings.deleteConfirmMessage}\n\nAddon: ${addon.name}',
+              style: const TextStyle(fontSize: 14, color: Color(0xFF8B8B8B)),
             ),
-            child: Icon(_typeIcon, color: _typeColor, size: 22),
-          ),
-          const SizedBox(width: 14),
-
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  addon.name,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF121212),
-                  ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                child: const Text(
+                  CashierStrings.cancel,
+                  style: TextStyle(color: Color(0xFF8B8B8B)),
                 ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Text(
-                      formattedPrice,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _typeColor.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        addon.type,
+              ),
+              TextButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        setDialogState(() => isLoading = true);
+                        final success = await widget.onDelete(addon.id);
+                        if (ctx.mounted) {
+                          setDialogState(() => isLoading = false);
+                          if (success) Navigator.pop(ctx);
+                        }
+                      },
+                child: isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFE74C3C),
+                        ),
+                      )
+                    : const Text(
+                        CashierStrings.delete,
                         style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: _typeColor,
+                          color: Color(0xFFE74C3C),
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Availability indicator + delete
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: addon.isAvailable
-                  ? const Color(0xFF2ECC71)
-                  : const Color(0xFFE74C3C),
-            ),
-          ),
-          IconButton(
-            onPressed: onEdit,
-            icon: Icon(
-              Icons.edit_outlined,
-              size: 18,
-              color: const Color(0xFF3498DB).withValues(alpha: 0.80),
-            ),
-          ),
-          IconButton(
-            onPressed: onDelete,
-            icon: Icon(
-              Icons.delete_outline_rounded,
-              size: 18,
-              color: const Color(0xFFE74C3C).withValues(alpha: 0.60),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------- Sheet Text Field ----------
-
-class _SheetTextField extends StatelessWidget {
-  const _SheetTextField({
-    required this.label,
-    this.controller,
-    this.keyboardType,
-  });
-
-  final String label;
-  final TextEditingController? controller;
-  final TextInputType? keyboardType;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF8B8B8B),
-        ),
-        filled: true,
-        fillColor: const Color(0xFFF5F5F5),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFFF4D06), width: 1.5),
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
