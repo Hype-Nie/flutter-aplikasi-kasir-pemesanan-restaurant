@@ -23,12 +23,11 @@ class AuthLoginState extends Equatable {
     AuthLoginStatus? status,
     String? message,
     User? user,
-  }) =>
-      AuthLoginState(
-        status: status ?? this.status,
-        message: message ?? this.message,
-        user: user ?? this.user,
-      );
+  }) => AuthLoginState(
+    status: status ?? this.status,
+    message: message ?? this.message,
+    user: user ?? this.user,
+  );
 
   @override
   List<Object?> get props => [status, message, user];
@@ -42,15 +41,17 @@ class AuthLoginNotifier extends Notifier<AuthLoginState> {
     state = state.copyWith(status: AuthLoginStatus.loading, message: '');
 
     try {
-      final response = await DioClient.instance.post('/api/auth/login',
-          options: Options(contentType: Headers.formUrlEncodedContentType),
-          data: {
-            'email': email,
-            'password': password,
-            'device_token': 'fcm_token_here',
-            'device_type': 'android',
-            'app_version': '1.0.0',
-          });
+      final response = await DioClient.instance.post(
+        '/api/auth/login',
+        options: Options(contentType: Headers.formUrlEncodedContentType),
+        data: {
+          'email': email,
+          'password': password,
+          'device_token': 'fcm_token_here',
+          'device_type': 'android',
+          'app_version': '1.0.0',
+        },
+      );
 
       final data = response.data as Map<String, dynamic>;
       final user = User.fromJson(data['user'] as Map<String, dynamic>);
@@ -102,5 +103,6 @@ class AuthLoginNotifier extends Notifier<AuthLoginState> {
   }
 }
 
-final authLoginProvider =
-    NotifierProvider<AuthLoginNotifier, AuthLoginState>(AuthLoginNotifier.new);
+final authLoginProvider = NotifierProvider<AuthLoginNotifier, AuthLoginState>(
+  AuthLoginNotifier.new,
+);

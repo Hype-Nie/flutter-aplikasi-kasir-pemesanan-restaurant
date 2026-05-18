@@ -24,9 +24,18 @@ class LoginForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LinedTextField(label: 'Email address', hint: AuthStrings.emailHint, controller: email),
+        LinedTextField(
+          label: 'Email address',
+          hint: AuthStrings.emailHint,
+          controller: email,
+        ),
         const SizedBox(height: 24),
-        LinedTextField(label: 'Password', hint: AuthStrings.passwordHint, controller: password, obscure: true),
+        LinedTextField(
+          label: 'Password',
+          hint: AuthStrings.passwordHint,
+          controller: password,
+          obscure: true,
+        ),
         const SizedBox(height: 18),
         TextButton(
           onPressed: () {},
@@ -62,7 +71,10 @@ class LoginForm extends StatelessWidget {
                     height: 22,
                     width: 22,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Text('Login'),
           ),
         ),

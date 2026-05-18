@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/core/network/dio_client.dart';
 import 'package:restaurant/features/customer/domain/entities/category.dart';
@@ -25,13 +26,12 @@ class CustomerDashboardState extends Equatable {
     String? message,
     List<Category>? categories,
     List<Menu>? menus,
-  }) =>
-      CustomerDashboardState(
-        status: status ?? this.status,
-        message: message ?? this.message,
-        categories: categories ?? this.categories,
-        menus: menus ?? this.menus,
-      );
+  }) => CustomerDashboardState(
+    status: status ?? this.status,
+    message: message ?? this.message,
+    categories: categories ?? this.categories,
+    menus: menus ?? this.menus,
+  );
 
   @override
   List<Object?> get props => [status, message, categories, menus];
@@ -42,7 +42,10 @@ class CustomerDashboardNotifier extends Notifier<CustomerDashboardState> {
   CustomerDashboardState build() => const CustomerDashboardState();
 
   Future<void> fetchDashboardData() async {
-    state = state.copyWith(status: CustomerDashboardStatus.loading, message: '');
+    state = state.copyWith(
+      status: CustomerDashboardStatus.loading,
+      message: '',
+    );
 
     try {
       final results = await Future.wait([
@@ -63,6 +66,9 @@ class CustomerDashboardNotifier extends Notifier<CustomerDashboardState> {
         categories: categories,
         menus: menus,
       );
+      debugPrint(
+        'fetchDashboardData success: ${menus.length} menus, ${categories.length} categories',
+      );
     } on DioException catch (e) {
       final data = e.response?.data;
       String msg = 'Failed to load data.';
@@ -70,7 +76,10 @@ class CustomerDashboardNotifier extends Notifier<CustomerDashboardState> {
         final message = data['message'];
         if (message is String && message.isNotEmpty) msg = message;
       }
-      state = state.copyWith(status: CustomerDashboardStatus.failure, message: msg);
+      state = state.copyWith(
+        status: CustomerDashboardStatus.failure,
+        message: msg,
+      );
     } catch (_) {
       state = state.copyWith(
         status: CustomerDashboardStatus.failure,
@@ -82,4 +91,5 @@ class CustomerDashboardNotifier extends Notifier<CustomerDashboardState> {
 
 final customerDashboardProvider =
     NotifierProvider<CustomerDashboardNotifier, CustomerDashboardState>(
-        CustomerDashboardNotifier.new);
+      CustomerDashboardNotifier.new,
+    );

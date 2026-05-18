@@ -1,21 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:restaurant/core/utils/currency_formatter.dart';
 import 'package:restaurant/features/customer/order_history/presentation/providers/customer_order_history_provider.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
 import 'order_widgets.dart';
-
-String formatPrice(String raw) {
-  try {
-    final amount = double.parse(raw);
-    final whole = amount
-        .toInt()
-        .toString()
-        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.');
-    return 'Rp $whole';
-  } catch (_) {
-    return raw;
-  }
-}
 
 List<Widget> buildOrderItemList(CustomerOrderHistoryState state) {
   final items = state.orderItems;
@@ -30,27 +18,35 @@ List<Widget> buildOrderItemList(CustomerOrderHistoryState state) {
         .where((a) => a.orderItemId == item.id)
         .toList();
 
-    widgets.add(ItemRow(
-      name: menuName,
-      qty: '${item.quantity}',
-      price: formatPrice(item.subtotal),
-    ));
+    widgets.add(
+      ItemRow(
+        name: menuName,
+        qty: '${item.quantity}',
+        price: formatCurrency(item.subtotal),
+      ),
+    );
 
     for (final addon in addonsForItem) {
       final addonName =
           state.addons[addon.addonId]?.name ?? 'Addon #${addon.addonId}';
-      widgets.add(Padding(
-        padding: const EdgeInsets.only(left: 24, top: 2, bottom: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('+ $addonName',
-                style: const TextStyle(fontSize: 12, color: Colors.black54)),
-            Text(formatPrice(addon.addonPrice),
-                style: const TextStyle(fontSize: 12, color: Colors.black54)),
-          ],
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.only(left: 24, top: 2, bottom: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '+ $addonName',
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              Text(
+                formatCurrency(addon.addonPrice),
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+            ],
+          ),
         ),
-      ));
+      );
     }
     if (i < items.length - 1) {
       widgets.add(const Divider(height: 24));

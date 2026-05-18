@@ -137,7 +137,10 @@ class ShimmerProfileCard extends StatelessWidget {
             for (int i = 0; i < 4; i++) ...[
               Container(
                 margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -159,31 +162,34 @@ class ShimmerCartItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShimmerEffect(
       child: Column(
-        children: List.generate(2, (_) => Container(
-          margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Row(
-            children: [
-              ShimmerBlock(width: 64, height: 64, radius: 12),
-              SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ShimmerBlock(width: 140, height: 16),
-                    SizedBox(height: 8),
-                    ShimmerBlock(width: 80, height: 14),
-                  ],
+        children: List.generate(
+          2,
+          (_) => Container(
+            margin: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Row(
+              children: [
+                ShimmerBlock(width: 64, height: 64, radius: 12),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerBlock(width: 140, height: 16),
+                      SizedBox(height: 8),
+                      ShimmerBlock(width: 80, height: 14),
+                    ],
+                  ),
                 ),
-              ),
-              ShimmerBlock(width: 32, height: 32, radius: 8),
-            ],
+                ShimmerBlock(width: 32, height: 32, radius: 8),
+              ],
+            ),
           ),
-        )),
+        ),
       ),
     );
   }

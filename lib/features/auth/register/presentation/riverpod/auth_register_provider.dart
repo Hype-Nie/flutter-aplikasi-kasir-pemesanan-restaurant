@@ -48,17 +48,19 @@ class AuthRegisterNotifier extends Notifier<AuthRegisterState> {
     state = state.copyWith(status: AuthRegisterStatus.loading, message: '');
 
     try {
-      final response = await DioClient.instance.post('/api/auth/register',
-          options: Options(contentType: Headers.formUrlEncodedContentType),
-          data: {
-            'name': name,
-            'email': email,
-            'password': password,
-            'password_confirmation': passwordConfirmation,
-            'device_token': 'fcm_token_here',
-            'device_type': 'android',
-            'app_version': '1.0.0',
-          });
+      final response = await DioClient.instance.post(
+        '/api/auth/register',
+        options: Options(contentType: Headers.formUrlEncodedContentType),
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+          'device_token': 'fcm_token_here',
+          'device_type': 'android',
+          'app_version': '1.0.0',
+        },
+      );
 
       final data = response.data as Map<String, dynamic>;
       final token = data['token'] as String;
@@ -103,6 +105,7 @@ class AuthRegisterNotifier extends Notifier<AuthRegisterState> {
   }
 }
 
-final authRegisterProvider = NotifierProvider<AuthRegisterNotifier, AuthRegisterState>(
-  AuthRegisterNotifier.new,
-);
+final authRegisterProvider =
+    NotifierProvider<AuthRegisterNotifier, AuthRegisterState>(
+      AuthRegisterNotifier.new,
+    );

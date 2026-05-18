@@ -63,4 +63,6 @@ class AuthLogoutNotifier extends Notifier<AuthLogoutState> {
 }
 
 final authLogoutProvider =
-    NotifierProvider<AuthLogoutNotifier, AuthLogoutState>(AuthLogoutNotifier.new);
+    NotifierProvider<AuthLogoutNotifier, AuthLogoutState>(
+      AuthLogoutNotifier.new,
+    );

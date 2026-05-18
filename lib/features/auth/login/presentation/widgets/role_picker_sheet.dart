@@ -21,7 +21,8 @@ void showRolePickerSheet(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 36, height: 4,
+            width: 36,
+            height: 4,
             decoration: BoxDecoration(
               color: const Color(0xFFD0D0D0),
               borderRadius: BorderRadius.circular(2),
@@ -31,9 +32,10 @@ void showRolePickerSheet(
           const Text(
             'Login as',
             style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF121212)),
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF121212),
+            ),
           ),
           const SizedBox(height: 18),
           RoleTile(

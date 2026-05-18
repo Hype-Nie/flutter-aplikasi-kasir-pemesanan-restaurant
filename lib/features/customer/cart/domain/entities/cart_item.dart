@@ -19,26 +19,44 @@ class CartItem extends Equatable {
     this.addonNames = const [],
   });
 
-  CartItem copyWith({int? quantity, List<int>? addonIds, List<String>? addonNames}) => CartItem(
-        id: id,
-        name: name,
-        price: price,
-        imageUrl: imageUrl,
-        quantity: quantity ?? this.quantity,
-        addonIds: addonIds ?? this.addonIds,
-        addonNames: addonNames ?? this.addonNames,
-      );
+  CartItem copyWith({
+    int? quantity,
+    List<int>? addonIds,
+    List<String>? addonNames,
+  }) => CartItem(
+    id: id,
+    name: name,
+    price: price,
+    imageUrl: imageUrl,
+    quantity: quantity ?? this.quantity,
+    addonIds: addonIds ?? this.addonIds,
+    addonNames: addonNames ?? this.addonNames,
+  );
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        price: json['price'] as String,
-        imageUrl: json['image_url'] as String,
-        quantity: json['quantity'] as int? ?? 1,
-        addonIds: (json['addon_ids'] as List<dynamic>?)?.map((e) => e as int).toList() ?? const [],
-        addonNames: (json['addon_names'] as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
-      );
+    id: json['id'] as int,
+    name: json['name'] as String,
+    price: json['price'] as String,
+    imageUrl: json['image_url'] as String,
+    quantity: json['quantity'] as int? ?? 1,
+    addonIds:
+        (json['addon_ids'] as List<dynamic>?)?.map((e) => e as int).toList() ??
+        const [],
+    addonNames:
+        (json['addon_names'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList() ??
+        const [],
+  );
 
   @override
-  List<Object?> get props => [id, name, price, imageUrl, quantity, addonIds, addonNames];
+  List<Object?> get props => [
+    id,
+    name,
+    price,
+    imageUrl,
+    quantity,
+    addonIds,
+    addonNames,
+  ];
 }

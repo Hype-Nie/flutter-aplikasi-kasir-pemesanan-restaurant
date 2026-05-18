@@ -57,36 +57,33 @@ class CashierSideDrawer extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 30),
-              Container(
-                height: 1,
-                color: Colors.white.withValues(alpha: 0.20),
-              ),
+              Container(height: 1, color: Colors.white.withValues(alpha: 0.20)),
               const SizedBox(height: 10),
 
               // --- Drawer menu items (secondary features) ---
               _DrawerAction(
                 title: 'Menu Management',
                 icon: Icons.restaurant_menu_rounded,
-                onTap: () => _navigateTo(
-                    context, const CashierMenuManagementPage()),
+                onTap: () =>
+                    _navigateTo(context, const CashierMenuManagementPage()),
               ),
               _DrawerAction(
                 title: 'Category Management',
                 icon: Icons.category_rounded,
-                onTap: () => _navigateTo(
-                    context, const CashierCategoryManagementPage()),
+                onTap: () =>
+                    _navigateTo(context, const CashierCategoryManagementPage()),
               ),
               _DrawerAction(
                 title: 'Addon Management',
                 icon: Icons.add_box_outlined,
-                onTap: () => _navigateTo(
-                    context, const CashierAddonManagementPage()),
+                onTap: () =>
+                    _navigateTo(context, const CashierAddonManagementPage()),
               ),
               _DrawerAction(
                 title: 'Order Report',
                 icon: Icons.assessment_rounded,
-                onTap: () => _navigateTo(
-                    context, const CashierOrderReportPage()),
+                onTap: () =>
+                    _navigateTo(context, const CashierOrderReportPage()),
               ),
 
               const Spacer(),
@@ -97,8 +94,7 @@ class CashierSideDrawer extends StatelessWidget {
                   onClose();
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
-                        builder: (_) => const AuthLogoutPage()),
+                    MaterialPageRoute(builder: (_) => const AuthLogoutPage()),
                   );
                 },
                 child: const Padding(
@@ -174,15 +170,15 @@ class _DrawerAction extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    size: 14, color: Colors.white54),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Colors.white54,
+                ),
               ],
             ),
             const SizedBox(height: 10),
-            Container(
-              height: 1,
-              color: Colors.white.withValues(alpha: 0.28),
-            ),
+            Container(height: 1, color: Colors.white.withValues(alpha: 0.28)),
           ],
         ),
       ),
