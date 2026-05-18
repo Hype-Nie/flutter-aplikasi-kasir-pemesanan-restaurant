@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:restaurant/config/strings/cashier_strings.dart';
+import 'package:restaurant/shared/models/category.dart';
 import '../riverpod/cashier_category_management_provider.dart';
+import '../widgets/stat_chip.dart';
+import '../widgets/category_tile.dart';
+import '../widgets/category_sheet_text_field.dart';
 
 class CashierCategoryManagementPage extends ConsumerStatefulWidget {
   const CashierCategoryManagementPage({super.key});
@@ -18,19 +23,63 @@ class _CashierCategoryManagementPageState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(cashierCategoryManagementProvider.notifier).started();
+      ref.read(cashierCategoryManagementProvider.notifier).fetchCategories();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(cashierCategoryManagementProvider);
-    return const _CashierCategoryManagementView();
+    final state = ref.watch(cashierCategoryManagementProvider);
+
+    ref.listen(cashierCategoryManagementProvider, (prev, next) {
+      if (next.status == CashierCategoryManagementStatus.failure &&
+          next.message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: const Color(0xFFE74C3C),
+          ),
+        );
+      }
+      if (next.status == CashierCategoryManagementStatus.success &&
+          next.message.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.message),
+            backgroundColor: const Color(0xFF2ECC71),
+          ),
+        );
+      }
+    });
+
+    return _CashierCategoryManagementView(
+      state: state,
+      onRefresh: () =>
+          ref.read(cashierCategoryManagementProvider.notifier).fetchCategories(),
+      onAdd: (name, desc) =>
+          ref.read(cashierCategoryManagementProvider.notifier).createCategory(name, desc),
+      onEdit: (id, {name, description}) =>
+          ref.read(cashierCategoryManagementProvider.notifier).updateCategory(id, name: name, description: description),
+      onDelete: (id) =>
+          ref.read(cashierCategoryManagementProvider.notifier).deleteCategory(id),
+    );
   }
 }
 
 class _CashierCategoryManagementView extends StatefulWidget {
-  const _CashierCategoryManagementView();
+  const _CashierCategoryManagementView({
+    required this.state,
+    required this.onRefresh,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final CashierCategoryManagementState state;
+  final Future<void> Function() onRefresh;
+  final Future<bool> Function(String name, String description) onAdd;
+  final Future<bool> Function(int id, {String? name, String? description}) onEdit;
+  final Future<bool> Function(int id) onDelete;
 
   @override
   State<_CashierCategoryManagementView> createState() =>
@@ -45,13 +94,24 @@ class _CashierCategoryManagementViewState
 
   late final AnimationController _animCtrl;
 
-  final _categories = const <_CategoryItem>[
-    _CategoryItem('Foods', Icons.restaurant_rounded, 12, Color(0xFFFF4D06)),
-    _CategoryItem('Drinks', Icons.local_cafe_rounded, 8, Color(0xFF3498DB)),
-    _CategoryItem('Snacks', Icons.cookie_rounded, 5, Color(0xFFF39C12)),
-    _CategoryItem('Sauce', Icons.water_drop_rounded, 3, Color(0xFFE74C3C)),
-    _CategoryItem('Desserts', Icons.cake_rounded, 0, Color(0xFF9B59B6)),
-    _CategoryItem('Seafood', Icons.set_meal_rounded, 0, Color(0xFF2ECC71)),
+  static const _categoryColors = <Color>[
+    Color(0xFFFF4D06),
+    Color(0xFF3498DB),
+    Color(0xFFF39C12),
+    Color(0xFFE74C3C),
+    Color(0xFF9B59B6),
+    Color(0xFF2ECC71),
+  ];
+
+  static const _categoryIcons = <IconData>[
+    Icons.restaurant_rounded,
+    Icons.local_cafe_rounded,
+    Icons.cookie_rounded,
+    Icons.water_drop_rounded,
+    Icons.cake_rounded,
+    Icons.set_meal_rounded,
+    Icons.fastfood_rounded,
+    Icons.local_pizza_rounded,
   ];
 
   @override
@@ -69,8 +129,18 @@ class _CashierCategoryManagementViewState
     super.dispose();
   }
 
+  Color _colorForIndex(int index) =>
+      _categoryColors[index % _categoryColors.length];
+
+  IconData _iconForIndex(int index) =>
+      _categoryIcons[index % _categoryIcons.length];
+
   @override
   Widget build(BuildContext context) {
+    final categories = widget.state.categories;
+    final isLoading =
+        widget.state.status == CashierCategoryManagementStatus.loading;
+
     return Scaffold(
       backgroundColor: _bg,
       floatingActionButton: TweenAnimationBuilder<double>(
@@ -99,23 +169,23 @@ class _CashierCategoryManagementViewState
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Row(
                 children: [
-                  _StatChip(
+                  StatChip(
                     label: 'Total',
-                    value: '${_categories.length}',
+                    value: '${categories.length}',
                     color: _accent,
                   ),
                   const SizedBox(width: 10),
-                  _StatChip(
-                    label: 'Active',
+                  StatChip(
+                    label: 'With Desc',
                     value:
-                        '${_categories.where((c) => c.itemCount > 0).length}',
+                        '${categories.where((c) => c.description.isNotEmpty).length}',
                     color: const Color(0xFF2ECC71),
                   ),
                   const SizedBox(width: 10),
-                  _StatChip(
-                    label: 'Empty',
+                  StatChip(
+                    label: 'No Desc',
                     value:
-                        '${_categories.where((c) => c.itemCount == 0).length}',
+                        '${categories.where((c) => c.description.isEmpty).length}',
                     color: const Color(0xFFF39C12),
                   ),
                 ],
@@ -126,38 +196,87 @@ class _CashierCategoryManagementViewState
 
             // --- Category list ---
             Expanded(
-              child: AnimatedBuilder(
-                animation: _animCtrl,
-                builder: (_, __) {
-                  return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
-                    itemCount: _categories.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) {
-                      final delay = (i / _categories.length).clamp(0.0, 1.0);
-                      final curved = CurvedAnimation(
-                        parent: _animCtrl,
-                        curve: Interval(delay, 1.0, curve: Curves.easeOutCubic),
-                      );
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.15, 0),
-                          end: Offset.zero,
-                        ).animate(curved),
-                        child: FadeTransition(
-                          opacity: curved,
-                          child: _CategoryTile(
-                            item: _categories[i],
-                            accent: _accent,
-                            onEdit: () {},
-                            onDelete: () {},
+              child: isLoading && categories.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(color: _accent),
+                    )
+                  : categories.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.category_outlined,
+                                size: 64,
+                                color: _accent.withValues(alpha: 0.30),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No categories yet',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tap + to add your first category',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF8B8B8B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          color: _accent,
+                          onRefresh: widget.onRefresh,
+                          child: AnimatedBuilder(
+                            animation: _animCtrl,
+                            builder: (_, __) {
+                              return ListView.separated(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding:
+                                    const EdgeInsets.fromLTRB(18, 0, 18, 90),
+                                itemCount: categories.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 12),
+                                itemBuilder: (_, i) {
+                                  final delay =
+                                      (i / categories.length).clamp(0.0, 1.0);
+                                  final curved = CurvedAnimation(
+                                    parent: _animCtrl,
+                                    curve: Interval(delay, 1.0,
+                                        curve: Curves.easeOutCubic),
+                                  );
+                                  return SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.15, 0),
+                                      end: Offset.zero,
+                                    ).animate(curved),
+                                    child: FadeTransition(
+                                      opacity: curved,
+                                      child: CategoryTile(
+                                        category: categories[i],
+                                        color: _colorForIndex(i),
+                                        icon: _iconForIndex(i),
+                                        accent: _accent,
+                                        onEdit: () => _showEditCategorySheet(
+                                            context, categories[i]),
+                                        onDelete: () =>
+                                            _showDeleteDialog(
+                                                context, categories[i]),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
             ),
           ],
         ),
@@ -193,252 +312,271 @@ class _CashierCategoryManagementViewState
   }
 
   void _showAddCategorySheet(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    bool isLoading = false;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD0D0D0),
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              'Add New Category',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF121212),
-              ),
-            ),
-            const SizedBox(height: 22),
-            _SheetTextField(label: 'Category Name'),
-            const SizedBox(height: 12),
-            _SheetTextField(label: 'Description'),
-            const SizedBox(height: 22),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  elevation: 0,
-                  backgroundColor: _accent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD0D0D0),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                child: const Text(
-                  'Save Category',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------- Stat Chip ----------
-
-class _StatChip extends StatelessWidget {
-  const _StatChip({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.18)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: color.withValues(alpha: 0.80),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------- Category Tile ----------
-
-class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({
-    required this.item,
-    required this.accent,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final _CategoryItem item;
-  final Color accent;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Icon
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: item.color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(item.icon, color: item.color, size: 24),
-          ),
-          const SizedBox(width: 14),
-
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(
-                    fontSize: 16,
+                const SizedBox(height: 20),
+                const Text(
+                  'Add New Category',
+                  style: TextStyle(
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF121212),
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  '${item.itemCount} menu items',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF8B8B8B),
+                const SizedBox(height: 22),
+                CategorySheetTextField(
+                  label: 'Category Name',
+                  controller: nameCtrl,
+                ),
+                const SizedBox(height: 12),
+                CategorySheetTextField(
+                  label: 'Description',
+                  controller: descCtrl,
+                ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            if (nameCtrl.text.trim().isEmpty) return;
+                            setSheetState(() => isLoading = true);
+                            final success = await widget.onAdd(
+                              nameCtrl.text.trim(),
+                              descCtrl.text.trim(),
+                            );
+                            if (ctx.mounted) {
+                              setSheetState(() => isLoading = false);
+                              if (success) Navigator.pop(ctx);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: _accent,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: _accent.withValues(alpha: 0.50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Save Category',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                   ),
                 ),
               ],
             ),
           ),
-
-          // Actions
-          IconButton(
-            onPressed: onEdit,
-            icon: Icon(
-              Icons.edit_rounded,
-              size: 18,
-              color: accent.withValues(alpha: 0.60),
-            ),
-          ),
-          IconButton(
-            onPressed: onDelete,
-            icon: Icon(
-              Icons.delete_outline_rounded,
-              size: 18,
-              color: const Color(0xFFE74C3C).withValues(alpha: 0.60),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------- Sheet Text Field ----------
-
-class _SheetTextField extends StatelessWidget {
-  const _SheetTextField({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF8B8B8B),
-        ),
-        filled: true,
-        fillColor: const Color(0xFFF5F5F5),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFFF4D06), width: 1.5),
         ),
       ),
     );
   }
-}
 
-// ---------- Data ----------
+  void _showEditCategorySheet(BuildContext context, Category category) {
+    final nameCtrl = TextEditingController(text: category.name);
+    final descCtrl = TextEditingController(text: category.description);
+    bool isLoading = false;
 
-class _CategoryItem {
-  const _CategoryItem(this.name, this.icon, this.itemCount, this.color);
-  final String name;
-  final IconData icon;
-  final int itemCount;
-  final Color color;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD0D0D0),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Edit Category',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF121212),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                CategorySheetTextField(
+                  label: 'Category Name',
+                  controller: nameCtrl,
+                ),
+                const SizedBox(height: 12),
+                CategorySheetTextField(
+                  label: 'Description',
+                  controller: descCtrl,
+                ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () async {
+                            setSheetState(() => isLoading = true);
+                            final success = await widget.onEdit(
+                              category.id,
+                              name: nameCtrl.text.trim(),
+                              description: descCtrl.text.trim(),
+                            );
+                            if (ctx.mounted) {
+                              setSheetState(() => isLoading = false);
+                              if (success) Navigator.pop(ctx);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: _accent,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: _accent.withValues(alpha: 0.50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Update Category',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context, Category category) {
+    bool isLoading = false;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text(
+              CashierStrings.deleteConfirmTitle,
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+            ),
+            content: Text(
+              '${CashierStrings.deleteConfirmMessage}\n\nCategory: ${category.name}',
+              style: const TextStyle(fontSize: 14, color: Color(0xFF8B8B8B)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                child: const Text(
+                  CashierStrings.cancel,
+                  style: TextStyle(color: Color(0xFF8B8B8B)),
+                ),
+              ),
+              TextButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        setDialogState(() => isLoading = true);
+                        final success = await widget.onDelete(category.id);
+                        if (ctx.mounted) {
+                          setDialogState(() => isLoading = false);
+                          if (success) Navigator.pop(ctx);
+                        }
+                      },
+                child: isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFE74C3C),
+                        ),
+                      )
+                    : const Text(
+                        CashierStrings.delete,
+                        style: TextStyle(
+                          color: Color(0xFFE74C3C),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }

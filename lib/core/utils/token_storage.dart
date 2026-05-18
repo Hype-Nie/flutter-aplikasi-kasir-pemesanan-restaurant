@@ -4,6 +4,7 @@ class TokenStorage {
   static const _tokenKey = 'auth_token';
   static const _roleKey = 'auth_role';
   static const _userIdKey = 'auth_user_id';
+  static const _nameKey = 'auth_user_name';
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,10 +42,21 @@ class TokenStorage {
         (prefs.getString(_tokenKey)?.isNotEmpty ?? false);
   }
 
+  static Future<void> saveName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_nameKey, name);
+  }
+
+  static Future<String?> getName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_nameKey);
+  }
+
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_roleKey);
     await prefs.remove(_userIdKey);
+    await prefs.remove(_nameKey);
   }
 }
