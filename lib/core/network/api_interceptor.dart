@@ -4,7 +4,10 @@ import 'package:restaurant/core/utils/token_storage.dart';
 
 class AuthInterceptor extends Interceptor {
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     if (_isAuthEndpoint(options.path)) {
       handler.next(options);
       return;

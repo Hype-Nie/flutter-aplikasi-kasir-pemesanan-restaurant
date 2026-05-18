@@ -32,14 +32,14 @@ class User extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'email': email,
-        'role': role,
-        'phone': phone,
-        'address': address,
-        'avatar': avatar,
-      };
+    'id': id,
+    'name': name,
+    'email': email,
+    'role': role,
+    'phone': phone,
+    'address': address,
+    'avatar': avatar,
+  };
 
   bool get isCashier => role == 'cashier';
   bool get isCustomer => role == 'customer';

@@ -41,13 +41,18 @@ class DetailRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: const TextStyle(color: Colors.black54, fontSize: 14)),
-        Text(value,
-            style: TextStyle(
-                color: valueColor ?? Colors.black,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                fontSize: fontSize)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.black54, fontSize: 14),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: valueColor ?? Colors.black,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            fontSize: fontSize,
+          ),
+        ),
       ],
     );
   }
@@ -69,8 +74,11 @@ class ItemRow extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-            child: Text(name,
-                style: const TextStyle(fontWeight: FontWeight.w600))),
+          child: Text(
+            name,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
         Text('x$qty', style: const TextStyle(color: Colors.black54)),
         const SizedBox(width: 16),
         Text(price, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -111,7 +119,8 @@ class OrderCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 50, height: 50,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 color: accent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -123,24 +132,39 @@ class OrderCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Order ${order.orderNumber}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    'Order ${order.orderNumber}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(order.formattedDate,
-                      style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                  Text(
+                    order.formattedDate,
+                    style: const TextStyle(color: Colors.black54, fontSize: 13),
+                  ),
                 ],
               ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(order.formattedTotal,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: accent)),
+                Text(
+                  order.formattedTotal,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: accent,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   order.status[0].toUpperCase() + order.status.substring(1),
                   style: TextStyle(
-                      color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
+                    color: statusColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),

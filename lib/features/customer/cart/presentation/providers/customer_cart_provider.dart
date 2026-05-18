@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/cart_item.dart';
@@ -20,12 +21,11 @@ class CustomerCartState extends Equatable {
     CustomerCartStatus? status,
     List<CartItem>? items,
     String? message,
-  }) =>
-      CustomerCartState(
-        status: status ?? this.status,
-        items: items ?? this.items,
-        message: message ?? this.message,
-      );
+  }) => CustomerCartState(
+    status: status ?? this.status,
+    items: items ?? this.items,
+    message: message ?? this.message,
+  );
 
   @override
   List<Object?> get props => [status, items, message];
@@ -36,6 +36,7 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
   CustomerCartState build() => const CustomerCartState();
 
   void addItem(CartItem item) {
+    debugPrint('addItem: ${item.name}, imageUrl: ${item.imageUrl}');
     final existing = state.items.indexWhere((i) => i.id == item.id);
     if (existing != -1) {
       final updated = state.items.toList();
@@ -57,6 +58,7 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
   }
 
   void removeItem(int id) {
+    debugPrint('removeItem: id=$id');
     final updated = state.items.where((item) => item.id != id).toList();
     state = state.copyWith(items: updated);
   }
@@ -64,5 +66,5 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
 
 final customerCartProvider =
     NotifierProvider<CustomerCartNotifier, CustomerCartState>(
-  CustomerCartNotifier.new,
-);
+      CustomerCartNotifier.new,
+    );

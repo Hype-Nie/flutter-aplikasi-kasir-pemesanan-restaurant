@@ -5,11 +5,7 @@ class Addon extends Equatable {
   final String name;
   final String? price;
 
-  const Addon({
-    required this.id,
-    required this.name,
-    this.price,
-  });
+  const Addon({required this.id, required this.name, this.price});
 
   factory Addon.fromJson(Map<String, dynamic> json) {
     return Addon(

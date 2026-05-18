@@ -12,12 +12,14 @@ class DioClient {
   }
 
   static Dio _create() {
-    final dio = Dio(BaseOptions(
-      baseUrl: EnvConfig.baseUrl,
-      connectTimeout: Duration(milliseconds: EnvConfig.apiTimeout),
-      receiveTimeout: Duration(milliseconds: EnvConfig.apiTimeout),
-      headers: {'Accept': 'application/json'},
-    ));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: EnvConfig.baseUrl,
+        connectTimeout: Duration(milliseconds: EnvConfig.apiTimeout),
+        receiveTimeout: Duration(milliseconds: EnvConfig.apiTimeout),
+        headers: {'Accept': 'application/json'},
+      ),
+    );
 
     dio.interceptors.add(AuthInterceptor());
 

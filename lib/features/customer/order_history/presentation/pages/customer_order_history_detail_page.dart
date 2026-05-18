@@ -48,88 +48,114 @@ class _CustomerOrderHistoryDetailPageState
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Colors.black, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 18,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Order ${order.orderNumber}',
-            style: const TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Order ${order.orderNumber}',
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
       ),
-      body: Builder(builder: (context) {
-        if (state.status == CustomerOrderHistoryStatus.loading) {
-          return const OrderDetailShimmer();
-        }
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              DetailCard(children: [
-                DetailRow(
-                    label: 'Status',
-                    value: order.status[0].toUpperCase() +
-                        order.status.substring(1),
-                    valueColor: statusColor,
-                    isBold: true),
-                const Divider(height: 32),
-                DetailRow(label: 'Order Date', value: order.formattedDate),
-                const Divider(height: 32),
-                DetailRow(label: 'Order ID', value: order.orderNumber),
-                if (order.tableNumber != null) ...[
-                  const Divider(height: 32),
-                  DetailRow(label: 'Table', value: order.tableNumber!),
-                ],
-              ]),
-              const SizedBox(height: 24),
-              const Text('Items',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              DetailCard(children: buildOrderItemList(state)),
-              const SizedBox(height: 24),
-              const Text('Payment Details',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              DetailCard(children: [
-                DetailRow(
-                    label: 'Payment Method',
-                    value: order.paymentMethod ?? '-'),
-                const Divider(height: 32),
-                DetailRow(
-                    label: 'Delivery Method',
-                    value: order.deliveryMethod ?? '-'),
-                const Divider(height: 32),
-                DetailRow(
-                    label: 'Total',
-                    value: order.formattedTotal,
-                    isBold: true,
-                    valueColor: _accent,
-                    fontSize: 18),
-              ]),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 64,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _accent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Re-order',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600)),
+      body: Builder(
+        builder: (context) {
+          if (state.status == CustomerOrderHistoryStatus.loading) {
+            return const OrderDetailShimmer();
+          }
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DetailCard(
+                  children: [
+                    DetailRow(
+                      label: 'Status',
+                      value:
+                          order.status[0].toUpperCase() +
+                          order.status.substring(1),
+                      valueColor: statusColor,
+                      isBold: true,
+                    ),
+                    const Divider(height: 32),
+                    DetailRow(label: 'Order Date', value: order.formattedDate),
+                    const Divider(height: 32),
+                    DetailRow(label: 'Order ID', value: order.orderNumber),
+                    if (order.tableNumber != null) ...[
+                      const Divider(height: 32),
+                      DetailRow(label: 'Table', value: order.tableNumber!),
+                    ],
+                  ],
                 ),
-              ),
-            ],
-          ),
-        );
-      }),
+                const SizedBox(height: 24),
+                const Text(
+                  'Items',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                DetailCard(children: buildOrderItemList(state)),
+                const SizedBox(height: 24),
+                const Text(
+                  'Payment Details',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                DetailCard(
+                  children: [
+                    DetailRow(
+                      label: 'Payment Method',
+                      value: order.paymentMethod ?? '-',
+                    ),
+                    const Divider(height: 32),
+                    DetailRow(
+                      label: 'Delivery Method',
+                      value: order.deliveryMethod ?? '-',
+                    ),
+                    const Divider(height: 32),
+                    DetailRow(
+                      label: 'Total',
+                      value: order.formattedTotal,
+                      isBold: true,
+                      valueColor: _accent,
+                      fontSize: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 64,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Re-order',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

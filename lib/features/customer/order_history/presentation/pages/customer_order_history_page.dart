@@ -37,11 +37,17 @@ class _CustomerOrderHistoryPageState
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 18,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('History',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'History',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: _buildBody(state),
@@ -64,8 +70,9 @@ class _CustomerOrderHistoryPageState
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) => CustomerOrderHistoryDetailPage(
-                  order: state.orders[i])),
+            builder: (_) =>
+                CustomerOrderHistoryDetailPage(order: state.orders[i]),
+          ),
         ),
       ),
     );
@@ -113,19 +120,30 @@ class _CustomerOrderHistoryPageState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.receipt_long_outlined, size: 100,
-                color: Color(0xFFC7C7C7)),
+            const Icon(
+              Icons.receipt_long_outlined,
+              size: 100,
+              color: Color(0xFFC7C7C7),
+            ),
             const SizedBox(height: 24),
-            const Text('No history yet',
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black)),
+            const Text(
+              'No history yet',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
+            ),
             const SizedBox(height: 12),
-            const Text('Hit the orange button down\nbelow to Create an order',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 15, color: Colors.black54, height: 1.4)),
+            const Text(
+              'Hit the orange button down\nbelow to Create an order',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.black54,
+                height: 1.4,
+              ),
+            ),
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
@@ -135,14 +153,18 @@ class _CustomerOrderHistoryPageState
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _accent,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                   elevation: 0,
                 ),
-                child: const Text('Start ordering',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Start ordering',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],

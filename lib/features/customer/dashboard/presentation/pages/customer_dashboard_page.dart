@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:restaurant/config/constants/api_constants.dart';
 import 'package:restaurant/features/customer/search/presentation/pages/customer_search_page.dart';
 import 'package:restaurant/features/customer/cart/presentation/providers/customer_cart_provider.dart';
 import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
@@ -43,15 +44,19 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
     final state = ref.read(customerDashboardProvider);
     final cats = {for (final c in state.categories) c.id: c.name};
     return state.menus
-        .map((m) => FoodItem(
-              id: m.id,
-              name: m.name,
-              price: m.price ?? '0',
-              imageUrl: m.imageUrl ?? '',
-              category: cats[m.categoryId] ?? 'Other',
-              description: m.description ?? '',
-              isAvailable: m.isAvailable,
-            ))
+        .map(
+          (m) => FoodItem(
+            id: m.id,
+            name: m.name,
+            price: m.price ?? '0',
+            imageUrl: m.imageUrl != null && m.imageUrl!.isNotEmpty
+                ? '${ApiConstants.baseUrl}/${m.imageUrl}'
+                : '',
+            category: cats[m.categoryId] ?? 'Other',
+            description: m.description ?? '',
+            isAvailable: m.isAvailable,
+          ),
+        )
         .toList();
   }
 
@@ -72,27 +77,47 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
   void _openSearchPage() {
     final q = _query.trim();
     if (q.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Type menu first to search')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Type menu first to search')),
+      );
       return;
     }
-    final payload = _items.map<Map<String, String>>((e) => {
-      'id': e.id.toString(), 'name': e.name, 'price': e.price, 'imageUrl': e.imageUrl,
-      'category': e.category, 'description': e.description, 'is_available': e.isAvailable.toString(),
-    }).toList(growable: false);
+    final payload = _items
+        .map<Map<String, String>>(
+          (e) => {
+            'id': e.id.toString(),
+            'name': e.name,
+            'price': e.price,
+            'imageUrl': e.imageUrl,
+            'category': e.category,
+            'description': e.description,
+            'is_available': e.isAvailable.toString(),
+          },
+        )
+        .toList(growable: false);
 
-    Navigator.of(context).push(PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 320),
-      reverseTransitionDuration: const Duration(milliseconds: 240),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        final slide =
-            Tween<Offset>(begin: const Offset(0.08, 0), end: Offset.zero)
-                .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
-        return FadeTransition(
-          opacity: animation,
-          child: SlideTransition(position: slide, child: CustomerSearchPage(initialQuery: q, items: payload)),
-        );
-      },
-    ));
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 240),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          final slide =
+              Tween<Offset>(
+                begin: const Offset(0.08, 0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              );
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: slide,
+              child: CustomerSearchPage(initialQuery: q, items: payload),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -107,13 +132,21 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
 
     final dashboardState = ref.watch(customerDashboardProvider);
     if (dashboardState.categories.isNotEmpty && _categories.isEmpty) {
-      _categories = dashboardState.categories.map((c) => c.name).toList();
+      _categories = dashboardState.categories
+          .map((c) => c.name as String)
+          .toList();
     }
-    final selectedCategoryName = _categories.isNotEmpty ? _categories[_selectedCategory] : '';
-    final showingItems = _items.where((item) => item.category == selectedCategoryName).toList();
+    final selectedCategoryName = _categories.isNotEmpty
+        ? _categories[_selectedCategory]
+        : '';
+    final showingItems = _items
+        .where((item) => item.category == selectedCategoryName)
+        .toList();
     final isLoading = dashboardState.status == CustomerDashboardStatus.loading;
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: bg,
@@ -122,7 +155,10 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
             final shiftX = constraints.maxWidth * 0.36;
             return Stack(
               children: [
-                SideDrawer(open: _drawerOpen, onClose: () => setState(() => _drawerOpen = false)),
+                SideDrawer(
+                  open: _drawerOpen,
+                  onClose: () => setState(() => _drawerOpen = false),
+                ),
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 280),
                   curve: Curves.easeOutCubic,
@@ -151,32 +187,45 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
                         isLoading: isLoading,
                         cartCount: ref.watch(customerCartProvider).items.length,
                         cardWidth: cardWidth,
-                        onMenuTap: () => setState(() => _drawerOpen = !_drawerOpen),
-                        onCartTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CustomerCartPage())),
-                        onSearchChanged: (value) => setState(() => _query = value),
+                        onMenuTap: () =>
+                            setState(() => _drawerOpen = !_drawerOpen),
+                        onCartTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CustomerCartPage(),
+                          ),
+                        ),
+                        onSearchChanged: (value) =>
+                            setState(() => _query = value),
                         onSearchSubmit: () => _openSearchPage(),
                         onSelectCategory: (index) => setState(() {
                           _selectedCategory = index;
                           _activeMenuIndex = 0;
                         }),
-                        onSelectBottomNav: (index) => setState(() => _selectedBottomNav = index),
+                        onSelectBottomNav: (index) =>
+                            setState(() => _selectedBottomNav = index),
                         onSeeMoreTap: () {
                           if (showingItems.isEmpty) return;
-                          final safeIndex = _activeMenuIndex.clamp(0, showingItems.length - 1);
+                          final safeIndex = _activeMenuIndex.clamp(
+                            0,
+                            showingItems.length - 1,
+                          );
                           final item = showingItems[safeIndex];
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => CustomerMenuDetailPage(
-                              menuId: item.id,
-                              name: item.name,
-                              price: item.price,
-                              imageUrl: item.imageUrl,
-                              heroTag: item.name,
-                              description: item.description,
-                              isAvailable: item.isAvailable,
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CustomerMenuDetailPage(
+                                menuId: item.id,
+                                name: item.name,
+                                price: item.price,
+                                imageUrl: item.imageUrl,
+                                heroTag: 'menu-${item.id}',
+                                description: item.description,
+                                isAvailable: item.isAvailable,
+                              ),
                             ),
-                          ));
+                          );
                         },
-                        onVisibleMenuChanged: (index) => setState(() => _activeMenuIndex = index),
+                        onVisibleMenuChanged: (index) =>
+                            setState(() => _activeMenuIndex = index),
                       ),
                     ),
                   ),

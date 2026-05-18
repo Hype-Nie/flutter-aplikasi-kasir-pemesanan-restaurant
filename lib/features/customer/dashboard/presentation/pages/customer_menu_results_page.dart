@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:restaurant/config/constants/api_constants.dart';
 import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
+import 'package:restaurant/features/customer/dashboard/presentation/widgets/menu_results_widgets.dart';
 
 class CustomerMenuResultsPage extends StatefulWidget {
   const CustomerMenuResultsPage({
@@ -17,17 +19,23 @@ class CustomerMenuResultsPage extends StatefulWidget {
 
 class _CustomerMenuResultsPageState extends State<CustomerMenuResultsPage> {
   late final TextEditingController _controller;
-  late final List<_ResultItem> _all;
+  late final List<MenuResultItem> _all;
   String _query = '';
+
   @override
   void initState() {
     super.initState();
     _query = widget.initialQuery.trim();
     _controller = TextEditingController(text: _query);
-    _all = List.generate(
-      widget.items.length,
-      (i) => _ResultItem.fromMap(widget.items[i], i),
-    );
+    _all = widget.items.map((m) {
+      final map = Map<String, String>.from(m);
+      if (map['imageUrl'] != null &&
+          map['imageUrl']!.isNotEmpty &&
+          !map['imageUrl']!.startsWith('http')) {
+        map['imageUrl'] = '${ApiConstants.baseUrl}/${map['imageUrl']}';
+      }
+      return MenuResultItem.fromMap(map);
+    }).toList();
   }
 
   @override
@@ -36,16 +44,13 @@ class _CustomerMenuResultsPageState extends State<CustomerMenuResultsPage> {
     super.dispose();
   }
 
-  List<_ResultItem> get _visible {
+  List<MenuResultItem> get _visible {
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return [];
-    final filtered = _all
-        .where((e) => e.name.toLowerCase().contains(q))
-        .toList(growable: false);
-    return filtered.take(6).toList(growable: false);
+    return _all.where((e) => e.name.toLowerCase().contains(q)).take(6).toList();
   }
 
-  void _openDetail(_ResultItem item) {
+  void _openDetail(MenuResultItem item) {
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 300),
@@ -102,235 +107,94 @@ class _CustomerMenuResultsPageState extends State<CustomerMenuResultsPage> {
           ),
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back_ios_new, size: 16),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        onChanged: (value) => setState(() => _query = value),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          hintText: 'Search menu',
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF4F4F4),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(24),
-                    ),
-                  ),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Found ${items.length} results',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Expanded(
-                        child: items.isEmpty
-                            ? Center(
-                                child: Text(
-                                  _query.trim().isEmpty
-                                      ? 'Type to search menu'
-                                      : 'No results found',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Color(0xFF8B8B8B),
-                                  ),
-                                ),
-                              )
-                            : GridView.builder(
-                                physics: const BouncingScrollPhysics(),
-                                itemCount: items.length,
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: spacing,
-                                      mainAxisSpacing: spacing,
-                                      childAspectRatio: ratio,
-                                    ),
-                                itemBuilder: (context, index) => _ResultCard(
-                                  item: items[index],
-                                  index: index,
-                                  onTap: () => _openDetail(items[index]),
-                                ),
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _buildSearchBar(),
+              Expanded(child: _buildResults(items, spacing, ratio)),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class _ResultCard extends StatelessWidget {
-  const _ResultCard({
-    required this.item,
-    required this.index,
-    required this.onTap,
-  });
-  final _ResultItem item;
-  final int index;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    final delay = (index * 45).clamp(0, 240);
-    final size = MediaQuery.sizeOf(context);
-    final img = (size.width * 0.20).clamp(80.0, 92.0);
-    return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 280 + delay),
-      curve: Curves.easeOutCubic,
-      tween: Tween(begin: 0, end: 1),
-      builder: (context, value, child) => Opacity(
-        opacity: value,
-        child: Transform.translate(
-          offset: Offset(0, 14 * (1 - value)),
-          child: child,
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              top: img * 0.30,
-              child: Container(
-                padding: EdgeInsets.fromLTRB(10, img * 0.92, 10, 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 4),
-                    Text(
-                      item.name,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        height: 1.1,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      item.price,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFFF4D06),
-                      ),
-                    ),
-                  ],
-                ),
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new, size: 16),
+          ),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              onChanged: (value) => setState(() => _query = value),
+              decoration: const InputDecoration(
+                isDense: true,
+                hintText: 'Search menu',
+                border: InputBorder.none,
               ),
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              child: Center(
-                child: Hero(
-                  tag: item.heroTag,
-                  child: SizedBox(
-                    width: img,
-                    height: img,
-                    child: ClipOval(
-                      child: item.imageUrl.isNotEmpty
-                          ? Image.network(
-                              item.imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const _ImagePlaceholder(),
-                            )
-                          : const _ImagePlaceholder(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResults(
+    List<MenuResultItem> items,
+    double spacing,
+    double ratio,
+  ) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF4F4F4),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        children: [
+          Text(
+            'Found ${items.length} results',
+            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 14),
+          Expanded(
+            child: items.isEmpty
+                ? Center(
+                    child: Text(
+                      _query.trim().isEmpty
+                          ? 'Type to search menu'
+                          : 'No results found',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF8B8B8B),
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: items.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: spacing,
+                      mainAxisSpacing: spacing,
+                      childAspectRatio: ratio,
+                    ),
+                    itemBuilder: (context, index) => MenuResultCard(
+                      id: items[index].id,
+                      name: items[index].name,
+                      price: items[index].price,
+                      imageUrl: items[index].imageUrl,
+                      heroTag: items[index].heroTag,
+                      description: items[index].description,
+                      isAvailable: items[index].isAvailable,
+                      index: index,
+                      onTap: () => _openDetail(items[index]),
                     ),
                   ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultItem {
-  const _ResultItem({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.imageUrl,
-    required this.heroTag,
-    required this.description,
-    required this.isAvailable,
-  });
-  final int id;
-  final String name;
-  final String price;
-  final String imageUrl;
-  final String heroTag;
-  final String description;
-  final bool isAvailable;
-  factory _ResultItem.fromMap(Map<String, String> map, int index) {
-    final name = map['name'] ?? 'Unknown item';
-    return _ResultItem(
-      id: int.tryParse(map['id'] ?? '') ?? 0,
-      name: name,
-      price: map['price'] ?? 'N0',
-      imageUrl:
-          map['imageUrl'] ??
-          'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200',
-      heroTag: 'menu-${index}-$name',
-      description: map['description'] ?? '',
-      isAvailable: map['is_available'] != 'false',
-    );
-  }
-}
-
-class _ImagePlaceholder extends StatelessWidget {
-  const _ImagePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const ColoredBox(
-      color: Color(0xFFF0F0F0),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.broken_image_outlined, size: 40, color: Colors.grey),
-            SizedBox(height: 4),
-            Text(
-              'Image not available',
-              style: TextStyle(color: Colors.grey, fontSize: 11),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

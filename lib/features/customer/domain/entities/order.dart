@@ -51,8 +51,19 @@ class Order extends Equatable {
   bool get isCancelled => status == 'cancelled';
 
   static const _months = [
-    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    '',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   String get formattedDate {
@@ -68,9 +79,9 @@ class Order extends Equatable {
     try {
       final amount = double.parse(totalAmount);
       final whole = amount.toInt().toString().replaceAllMapped(
-            RegExp(r'\B(?=(\d{3})+(?!\d))'),
-            (m) => '.',
-          );
+        RegExp(r'\B(?=(\d{3})+(?!\d))'),
+        (m) => '.',
+      );
       return 'Rp $whole';
     } catch (_) {
       return totalAmount;
@@ -79,17 +90,17 @@ class Order extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        orderNumber,
-        userId,
-        orderType,
-        tableNumber,
-        status,
-        paymentMethod,
-        deliveryMethod,
-        totalAmount,
-        notes,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    orderNumber,
+    userId,
+    orderType,
+    tableNumber,
+    status,
+    paymentMethod,
+    deliveryMethod,
+    totalAmount,
+    notes,
+    createdAt,
+    updatedAt,
+  ];
 }

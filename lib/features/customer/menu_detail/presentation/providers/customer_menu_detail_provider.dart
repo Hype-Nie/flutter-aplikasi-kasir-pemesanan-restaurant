@@ -21,12 +21,11 @@ class CustomerMenuDetailState extends Equatable {
     CustomerMenuDetailStatus? status,
     String? message,
     List<MenuAddon>? addons,
-  }) =>
-      CustomerMenuDetailState(
-        status: status ?? this.status,
-        message: message ?? this.message,
-        addons: addons ?? this.addons,
-      );
+  }) => CustomerMenuDetailState(
+    status: status ?? this.status,
+    message: message ?? this.message,
+    addons: addons ?? this.addons,
+  );
 
   @override
   List<Object?> get props => [status, message, addons];
@@ -34,17 +33,19 @@ class CustomerMenuDetailState extends Equatable {
 
 class MenuAddon extends Equatable {
   final int id;
+  final int addonId;
   final String name;
   final String price;
 
   const MenuAddon({
     required this.id,
+    required this.addonId,
     required this.name,
     required this.price,
   });
 
   @override
-  List<Object?> get props => [id, name, price];
+  List<Object?> get props => [id, addonId, name, price];
 }
 
 class CustomerMenuDetailNotifier extends Notifier<CustomerMenuDetailState> {
@@ -52,7 +53,9 @@ class CustomerMenuDetailNotifier extends Notifier<CustomerMenuDetailState> {
   CustomerMenuDetailState build() => const CustomerMenuDetailState();
 
   Future<void> fetchMenuAddons(int menuId) async {
-    state = const CustomerMenuDetailState(status: CustomerMenuDetailStatus.loading);
+    state = const CustomerMenuDetailState(
+      status: CustomerMenuDetailStatus.loading,
+    );
 
     try {
       final results = await Future.wait([
@@ -66,19 +69,22 @@ class CustomerMenuDetailNotifier extends Notifier<CustomerMenuDetailState> {
         addonMap[a.id] = a;
       }
 
-      final menuAddons = (results[0].data as List<dynamic>)
-          .map((json) => json as Map<String, dynamic>)
+      final allMenuAddons = results[0].data as List<dynamic>;
+      final filtered = allMenuAddons
+          .map((j) => j as Map<String, dynamic>)
           .where((m) => m['menu_id'].toString() == menuId.toString())
-          .map((m) {
-            final addonId = int.tryParse(m['addon_id'].toString()) ?? 0;
-            final a = addonMap[addonId];
-            return MenuAddon(
-              id: m['id'] as int,
-              name: a?.name ?? 'Addon #${m['addon_id']}',
-              price: a?.price ?? '0',
-            );
-          })
           .toList();
+
+      final menuAddons = filtered.map((m) {
+        final addonId = int.tryParse(m['addon_id'].toString()) ?? 0;
+        final a = addonMap[addonId];
+        return MenuAddon(
+          id: m['id'] as int,
+          addonId: addonId,
+          name: a?.name ?? 'Addon #${m['addon_id']}',
+          price: a?.price ?? '0',
+        );
+      }).toList();
 
       state = state.copyWith(
         status: CustomerMenuDetailStatus.success,
@@ -91,7 +97,10 @@ class CustomerMenuDetailNotifier extends Notifier<CustomerMenuDetailState> {
         final message = data['message'];
         if (message is String && message.isNotEmpty) msg = message;
       }
-      state = state.copyWith(status: CustomerMenuDetailStatus.failure, message: msg);
+      state = state.copyWith(
+        status: CustomerMenuDetailStatus.failure,
+        message: msg,
+      );
     } catch (_) {
       state = state.copyWith(
         status: CustomerMenuDetailStatus.failure,
@@ -103,4 +112,5 @@ class CustomerMenuDetailNotifier extends Notifier<CustomerMenuDetailState> {
 
 final customerMenuDetailProvider =
     NotifierProvider<CustomerMenuDetailNotifier, CustomerMenuDetailState>(
-        CustomerMenuDetailNotifier.new);
+      CustomerMenuDetailNotifier.new,
+    );
