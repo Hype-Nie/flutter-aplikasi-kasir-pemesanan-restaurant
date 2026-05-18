@@ -192,7 +192,13 @@ class _CashierMenuManagementViewState
 
   Future<XFile?> _pickImage(ImageSource source) async {
     try {
-      return await _imagePicker.pickImage(source: source, imageQuality: 85);
+      return await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 75,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        requestFullMetadata: false,
+      );
     } catch (_) {
       if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -703,7 +709,7 @@ class _CashierMenuManagementViewState
                   const SizedBox(height: 12),
                   _MenuImagePicker(
                     selectedImageFile: selectedImageFile,
-                    existingImageUrl: menu.image,
+                    existingImageUrl: menu.imageUrl,
                     onPickFromGallery: () async {
                       final picked = await _pickImage(ImageSource.gallery);
                       if (picked == null) return;
@@ -864,6 +870,16 @@ class _MenuCard extends StatelessWidget {
   final Color accent;
   final VoidCallback onTap;
 
+  Widget _buildImagePlaceholder() {
+    return Center(
+      child: Icon(
+        Icons.restaurant_rounded,
+        size: 40,
+        color: accent.withValues(alpha: 0.30),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -891,18 +907,19 @@ class _MenuCard extends StatelessWidget {
               children: [
                 // Image placeholder
                 Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: double.infinity,
                       color: accent.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.restaurant_rounded,
-                        size: 40,
-                        color: accent.withValues(alpha: 0.30),
-                      ),
+                      child: menu.imageUrl == null
+                          ? _buildImagePlaceholder()
+                          : Image.network(
+                              menu.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  _buildImagePlaceholder(),
+                            ),
                     ),
                   ),
                 ),

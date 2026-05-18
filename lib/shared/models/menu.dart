@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:restaurant/config/env/env_config.dart';
 
 class Menu extends Equatable {
   final int id;
@@ -54,6 +55,30 @@ class Menu extends Equatable {
         'created_at': createdAt?.toIso8601String(),
         'updated_at': updatedAt?.toIso8601String(),
       };
+
+  String? get imageUrl {
+    final raw = image?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+
+    final baseUrl = EnvConfig.baseUrl.trim().replaceFirst(RegExp(r'/$'), '');
+    final normalized = raw.replaceAll('\\', '/').replaceFirst(RegExp(r'^/+'), '');
+    final lowered = normalized.toLowerCase();
+
+    String path;
+    if (lowered.startsWith('assets/menu_images/')) {
+      path = normalized;
+    } else if (lowered.startsWith('api/assets/menu_images/')) {
+      path = normalized.substring(4);
+    } else if (lowered.startsWith('menu_images/')) {
+      path = 'assets/$normalized';
+    } else {
+      path = 'assets/menu_images/$normalized';
+    }
+
+    if (baseUrl.isEmpty) return '/$path';
+    return '$baseUrl/$path';
+  }
 
   @override
   List<Object?> get props => [
