@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/config/constants/api_constants.dart';
 import 'package:restaurant/features/customer/profile/presentation/providers/customer_profile_provider.dart';
-import 'package:restaurant/features/customer/profile/presentation/pages/customer_change_profile_page.dart';
-
-import 'shimmer_loading.dart';
+import '../../../order_history/presentation/pages/customer_order_history_page.dart';
 import '../pages/customer_change_profile_page.dart';
 import '../pages/customer_faq_page.dart';
 import '../pages/customer_privacy_policy_page.dart';
-import '../../../order_history/presentation/pages/customer_order_history_page.dart';
+import 'shimmer_loading.dart';
 
 class ProfileCard extends StatelessWidget {
   final Widget child;
@@ -29,7 +26,7 @@ class ProfileCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.01),
+                color: Colors.black.withValues(alpha: 0.01),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),

@@ -38,16 +38,23 @@ class Addon extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'price': price,
-        'type': type,
-        'is_available': isAvailable,
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'price': price,
+    'type': type,
+    'is_available': isAvailable,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 
   @override
-  List<Object?> get props =>
-      [id, name, price, type, isAvailable, createdAt, updatedAt];
+  List<Object?> get props => [
+    id,
+    name,
+    price,
+    type,
+    isAvailable,
+    createdAt,
+    updatedAt,
+  ];
 }

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/core/network/dio_client.dart';
 import 'package:restaurant/core/utils/token_storage.dart';
@@ -101,7 +100,6 @@ class CustomerProfileNotifier extends Notifier<CustomerProfileState> {
 
       Response response;
       if (avatarPath != null) {
-        debugPrint('updateUser: uploading avatar from path: $avatarPath');
         final formData = FormData();
         formData.fields.add(MapEntry('_method', 'PUT'));
         formData.files.add(
@@ -116,7 +114,6 @@ class CustomerProfileNotifier extends Notifier<CustomerProfileState> {
           options: Options(contentType: 'multipart/form-data'),
         );
       } else {
-        debugPrint('updateUser: no avatar, sending plain data: $data');
         response = await DioClient.instance.put(
           '/api/users/$userId',
           data: data,

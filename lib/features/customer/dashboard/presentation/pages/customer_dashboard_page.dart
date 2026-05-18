@@ -71,6 +71,7 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(customerDashboardProvider.notifier).fetchDashboardData();
+      ref.read(customerCartProvider.notifier).fetchCart();
     });
   }
 
@@ -133,7 +134,7 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
     final dashboardState = ref.watch(customerDashboardProvider);
     if (dashboardState.categories.isNotEmpty && _categories.isEmpty) {
       _categories = dashboardState.categories
-          .map((c) => c.name as String)
+          .map((c) => c.name)
           .toList();
     }
     final selectedCategoryName = _categories.isNotEmpty

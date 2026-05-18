@@ -40,8 +40,8 @@ class Order extends Equatable {
       totalAmount: double.parse(json['total_amount'].toString()),
       items: json['order_items'] != null
           ? (json['order_items'] as List<dynamic>)
-              .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
-              .toList()
+                .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
+                .toList()
           : const [],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
@@ -53,31 +53,31 @@ class Order extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'order_number': orderNumber,
-        'user_id': userId,
-        'order_type': orderType,
-        'status': status,
-        'payment_method': paymentMethod,
-        'delivery_method': deliveryMethod,
-        'total_amount': totalAmount,
-        'order_items': items.map((e) => e.toJson()).toList(),
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'order_number': orderNumber,
+    'user_id': userId,
+    'order_type': orderType,
+    'status': status,
+    'payment_method': paymentMethod,
+    'delivery_method': deliveryMethod,
+    'total_amount': totalAmount,
+    'order_items': items.map((e) => e.toJson()).toList(),
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 
   @override
   List<Object?> get props => [
-        id,
-        orderNumber,
-        userId,
-        orderType,
-        status,
-        paymentMethod,
-        deliveryMethod,
-        totalAmount,
-        items,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    orderNumber,
+    userId,
+    orderType,
+    status,
+    paymentMethod,
+    deliveryMethod,
+    totalAmount,
+    items,
+    createdAt,
+    updatedAt,
+  ];
 }

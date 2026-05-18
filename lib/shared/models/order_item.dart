@@ -42,20 +42,29 @@ class OrderItem extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'order_id': orderId,
-        'menu_id': menuId,
-        'menu_name': menuName,
-        'quantity': quantity,
-        'unit_price': unitPrice,
-        'subtotal': subtotal,
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'order_id': orderId,
+    'menu_id': menuId,
+    'menu_name': menuName,
+    'quantity': quantity,
+    'unit_price': unitPrice,
+    'subtotal': subtotal,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 
   @override
-  List<Object?> get props =>
-      [id, orderId, menuId, menuName, quantity, unitPrice, subtotal, createdAt, updatedAt];
+  List<Object?> get props => [
+    id,
+    orderId,
+    menuId,
+    menuName,
+    quantity,
+    unitPrice,
+    subtotal,
+    createdAt,
+    updatedAt,
+  ];
 
   static String _parseMenuName(Map<String, dynamic> json) {
     // From nested eager-loaded menu object

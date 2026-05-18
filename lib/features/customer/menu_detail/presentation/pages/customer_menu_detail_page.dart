@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/config/constants/api_constants.dart';
 import 'package:restaurant/core/utils/currency_formatter.dart';
-import 'package:restaurant/features/customer/cart/domain/entities/cart_item.dart';
 import 'package:restaurant/features/customer/cart/presentation/providers/customer_cart_provider.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
@@ -57,38 +56,34 @@ class _CustomerMenuDetailPageState
     });
   }
 
-  void _onAddToCart(bool isInCart, List<String> addonNames) {
+  Future<void> _onAddToCart() async {
     final notifier = ref.read(customerCartProvider.notifier);
-    if (isInCart) {
-      notifier.removeItem(widget.menuId);
-    } else {
-      notifier.addItem(
-        CartItem(
-          id: widget.menuId,
-          name: widget.name,
-          price: widget.price,
-          imageUrl: widget.imageUrl.isNotEmpty
-              ? '${ApiConstants.baseUrl}/${widget.imageUrl}'
-              : '',
-          addonIds: List.of(_selectedAddonIds),
-          addonNames: addonNames,
-        ),
-      );
-    }
+    final menuDetailState = ref.read(customerMenuDetailProvider);
+
+    final selectedAddons = menuDetailState.addons
+        .where((a) => _selectedAddonIds.contains(a.addonId))
+        .toList();
+
+    await notifier.addToCart(
+      menuId: widget.menuId,
+      menuName: widget.name,
+      unitPrice: widget.price,
+      menuImageUrl: widget.imageUrl.isNotEmpty
+          ? '${ApiConstants.baseUrl}/${widget.imageUrl}'
+          : '',
+      addonIds: selectedAddons.map((a) => a.addonId).toList(),
+      addonNames: selectedAddons.map((a) => a.price).toList(),
+    );
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(isInCart ? 'Removed from cart' : 'Added to cart')),
+      const SnackBar(content: Text('Added to cart')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(customerMenuDetailProvider);
-    final cartState = ref.watch(customerCartProvider);
-    final isInCart = cartState.items.any((i) => i.id == widget.menuId);
-    final selectedAddonNames = state.addons
-        .where((a) => _selectedAddonIds.contains(a.addonId))
-        .map((a) => a.name)
-        .toList();
 
     const accent = Color(0xFFFF460A);
     final width = MediaQuery.sizeOf(context).width;
@@ -115,26 +110,10 @@ class _CustomerMenuDetailPageState
                     ),
                     const SizedBox(height: 26),
                     Center(
-                      child: Text(
-                        widget.name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      child: Text(widget.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
                     ),
                     const SizedBox(height: 8),
-                    Center(
-                      child: Text(
-                        formatCurrency(widget.price),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: accent,
-                        ),
-                      ),
-                    ),
+                    Center(child: Text(formatCurrency(widget.price), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: accent))),
                     const SizedBox(height: 32),
                     _buildDescription(),
                     const SizedBox(height: 24),
@@ -152,8 +131,7 @@ class _CustomerMenuDetailPageState
             _AddToCartButton(
               accent: accent,
               isAvailable: widget.isAvailable,
-              isInCart: isInCart,
-              onTap: () => _onAddToCart(isInCart, selectedAddonNames),
+              onTap: _onAddToCart,
             ),
           ],
         ),
@@ -213,13 +191,11 @@ class _CustomerMenuDetailPageState
 class _AddToCartButton extends StatelessWidget {
   final Color accent;
   final bool isAvailable;
-  final bool isInCart;
   final VoidCallback onTap;
 
   const _AddToCartButton({
     required this.accent,
     required this.isAvailable,
-    required this.isInCart,
     required this.onTap,
   });
 
@@ -233,17 +209,15 @@ class _AddToCartButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: isAvailable ? onTap : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: isAvailable
-                ? (isInCart ? Colors.green : accent)
-                : Colors.grey,
+            backgroundColor: isAvailable ? accent : Colors.grey,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(30),
             ),
             elevation: 0,
           ),
-          child: Text(
-            isInCart ? 'Update cart' : 'Add to cart',
-            style: const TextStyle(
+          child: const Text(
+            'Add to cart',
+            style: TextStyle(
               color: Colors.white,
               fontSize: 17,
               fontWeight: FontWeight.w600,

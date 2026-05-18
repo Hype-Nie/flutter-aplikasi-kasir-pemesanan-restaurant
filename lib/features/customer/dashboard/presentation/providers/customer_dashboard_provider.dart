@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/core/network/dio_client.dart';
 import 'package:restaurant/features/customer/domain/entities/category.dart';
@@ -65,9 +64,6 @@ class CustomerDashboardNotifier extends Notifier<CustomerDashboardState> {
         status: CustomerDashboardStatus.success,
         categories: categories,
         menus: menus,
-      );
-      debugPrint(
-        'fetchDashboardData success: ${menus.length} menus, ${categories.length} categories',
       );
     } on DioException catch (e) {
       final data = e.response?.data;

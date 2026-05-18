@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/core/utils/currency_formatter.dart';
+import 'package:restaurant/features/customer/cart/presentation/providers/customer_cart_provider.dart';
 
-class CustomerCheckoutPage extends StatefulWidget {
+class CustomerCheckoutPage extends ConsumerStatefulWidget {
   const CustomerCheckoutPage({super.key});
   @override
-  State<CustomerCheckoutPage> createState() => _CustomerCheckoutPageState();
+  ConsumerState<CustomerCheckoutPage> createState() => _CustomerCheckoutPageState();
 }
 
-class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
+class _CustomerCheckoutPageState extends ConsumerState<CustomerCheckoutPage> {
   String _paymentMethod = 'card';
   String _deliveryMethod = 'door';
 
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFFFF460A);
+    final cartState = ref.watch(customerCartProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F8),
       appBar: AppBar(
@@ -133,9 +137,9 @@ class _CustomerCheckoutPageState extends State<CustomerCheckoutPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Total', style: TextStyle(fontSize: 17)),
-                const Text(
-                  '23,000',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                Text(
+                  formatCurrency(cartState.totalAmount),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ],
             ),

@@ -33,15 +33,21 @@ class OrderItemAddon extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'order_item_id': orderItemId,
-        'addon_id': addonId,
-        'addon_price': addonPrice,
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'order_item_id': orderItemId,
+    'addon_id': addonId,
+    'addon_price': addonPrice,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 
   @override
-  List<Object?> get props =>
-      [id, orderItemId, addonId, addonPrice, createdAt, updatedAt];
+  List<Object?> get props => [
+    id,
+    orderItemId,
+    addonId,
+    addonPrice,
+    createdAt,
+    updatedAt,
+  ];
 }

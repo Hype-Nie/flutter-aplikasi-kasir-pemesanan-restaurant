@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/features/customer/profile/presentation/providers/customer_profile_provider.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/avatar_picker.dart';
-import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
 class CustomerChangeProfilePage extends ConsumerStatefulWidget {
   const CustomerChangeProfilePage({super.key});
@@ -104,7 +103,6 @@ class _CustomerChangeProfilePageState
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFFFF460A);
     final state = ref.watch(customerProfileProvider);
 
     if (state.status == CustomerProfileStatus.success &&
@@ -185,7 +183,7 @@ class _CustomerChangeProfilePageState
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
