@@ -10,6 +10,7 @@ class OrderCard extends StatelessWidget {
     required this.formattedPrice,
     required this.formattedTime,
     required this.accent,
+    required this.onTap,
     required this.onAccept,
     required this.onReject,
   });
@@ -18,27 +19,31 @@ class OrderCard extends StatelessWidget {
   final String formattedPrice;
   final String formattedTime;
   final Color accent;
+  final VoidCallback onTap;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header
           Row(
             children: [
@@ -109,8 +114,27 @@ class OrderCard extends StatelessWidget {
                 label: order.deliveryMethod.replaceAll('_', ' '),
                 color: const Color(0xFFF39C12),
               ),
+              if ((order.tableNumber ?? '').isNotEmpty)
+                InfoChip(
+                  label: order.tableNumber!,
+                  color: const Color(0xFF9B59B6),
+                ),
             ],
           ),
+
+          if ((order.notes ?? '').isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              order.notes!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF6B6B6B),
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
 
@@ -165,7 +189,20 @@ class OrderCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Tap for detail',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8B8B8B),
+              ),
+            ),
+          ),
         ],
+        ),
       ),
     );
   }

@@ -9,8 +9,10 @@ import 'package:http_parser/http_parser.dart';
 
 import 'package:restaurant/config/strings/cashier_strings.dart';
 import 'package:restaurant/core/network/dio_client.dart';
+import 'package:restaurant/shared/models/addon.dart';
 import 'package:restaurant/shared/models/category.dart';
 import 'package:restaurant/shared/models/menu.dart';
+import 'package:restaurant/shared/models/menu_addon.dart';
 
 enum CashierMenuManagementStatus { initial, loading, success, failure }
 
@@ -20,29 +22,37 @@ class CashierMenuManagementState extends Equatable {
     this.message = '',
     this.menus = const [],
     this.categories = const [],
+    this.addons = const [],
+    this.menuAddons = const [],
   });
 
   final CashierMenuManagementStatus status;
   final String message;
   final List<Menu> menus;
   final List<Category> categories;
+  final List<Addon> addons;
+  final List<MenuAddon> menuAddons;
 
   CashierMenuManagementState copyWith({
     CashierMenuManagementStatus? status,
     String? message,
     List<Menu>? menus,
     List<Category>? categories,
+    List<Addon>? addons,
+    List<MenuAddon>? menuAddons,
   }) {
     return CashierMenuManagementState(
       status: status ?? this.status,
       message: message ?? this.message,
       menus: menus ?? this.menus,
       categories: categories ?? this.categories,
+      addons: addons ?? this.addons,
+      menuAddons: menuAddons ?? this.menuAddons,
     );
   }
 
   @override
-  List<Object?> get props => [status, message, menus, categories];
+  List<Object?> get props => [status, message, menus, categories, addons, menuAddons];
 }
 
 class CashierMenuManagementNotifier
@@ -62,10 +72,14 @@ class CashierMenuManagementNotifier
       final responses = await Future.wait([
         DioClient.instance.get('/api/menus'),
         DioClient.instance.get('/api/categories'),
+        DioClient.instance.get('/api/addons'),
+        DioClient.instance.get('/api/menu-addons'),
       ]);
 
       final menusData = responses[0].data as List<dynamic>;
       final categoriesData = responses[1].data as List<dynamic>;
+      final addonsData = responses[2].data as List<dynamic>;
+      final menuAddonsData = responses[3].data as List<dynamic>;
 
       final menus = menusData
           .map((e) => Menu.fromJson(e as Map<String, dynamic>))
@@ -73,11 +87,19 @@ class CashierMenuManagementNotifier
       final categories = categoriesData
           .map((e) => Category.fromJson(e as Map<String, dynamic>))
           .toList();
+        final addons = addonsData
+          .map((e) => Addon.fromJson(e as Map<String, dynamic>))
+          .toList();
+        final menuAddons = menuAddonsData
+          .map((e) => MenuAddon.fromJson(e as Map<String, dynamic>))
+          .toList();
 
       state = state.copyWith(
         status: CashierMenuManagementStatus.success,
         menus: menus,
         categories: categories,
+        addons: addons,
+        menuAddons: menuAddons,
       );
     } on DioException catch (e) {
       state = state.copyWith(
@@ -99,6 +121,7 @@ class CashierMenuManagementNotifier
     required String name,
     required int price,
     required bool isAvailable,
+    List<int> addonIds = const [],
     String? description,
     XFile? imageFile,
   }) async {
@@ -121,7 +144,34 @@ class CashierMenuManagementNotifier
         body['image'] = await _buildMenuImagePart(imageFile);
       }
       debugPrint('[MenuManagement] createMenu multipart keys: ${body.keys.join(",")}');
-      await DioClient.instance.post('/api/menus', data: FormData.fromMap(body));
+      final response = await DioClient.instance.post(
+        '/api/menus',
+        data: FormData.fromMap(body),
+      );
+
+      if (addonIds.isNotEmpty) {
+        int? menuId = _extractMenuId(response.data);
+        if (menuId == null) {
+          await fetchMenus();
+          menuId = _findMenuIdByNameCategory(name, categoryId);
+        }
+        if (menuId == null) {
+          state = state.copyWith(
+            status: CashierMenuManagementStatus.failure,
+            message: CashierStrings.menuAddonSyncFailed,
+          );
+          return false;
+        }
+
+        final linked = await _createMenuAddons(menuId, addonIds);
+        if (!linked) {
+          state = state.copyWith(
+            status: CashierMenuManagementStatus.failure,
+            message: CashierStrings.menuAddonSyncFailed,
+          );
+          return false;
+        }
+      }
 
       state = state.copyWith(
         status: CashierMenuManagementStatus.success,
@@ -162,6 +212,7 @@ class CashierMenuManagementNotifier
     String? name,
     int? categoryId,
     bool? isAvailable,
+    List<int>? addonIds,
   }) async {
     state = state.copyWith(
       status: CashierMenuManagementStatus.loading,
@@ -191,6 +242,17 @@ class CashierMenuManagementNotifier
       } else {
         debugPrint('[MenuManagement] updateMenu $id without image, data: $data');
         await DioClient.instance.put('/api/menus/$id', data: data);
+      }
+
+      if (addonIds != null) {
+        final synced = await _syncMenuAddons(id, addonIds);
+        if (!synced) {
+          state = state.copyWith(
+            status: CashierMenuManagementStatus.failure,
+            message: CashierStrings.menuAddonSyncFailed,
+          );
+          return false;
+        }
       }
 
       state = state.copyWith(
@@ -254,6 +316,93 @@ class CashierMenuManagementNotifier
         status: CashierMenuManagementStatus.failure,
         message: 'Error: $e',
       );
+      return false;
+    }
+  }
+
+  int? _extractMenuId(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final direct = data['id'];
+      if (direct != null) return int.tryParse(direct.toString());
+
+      final dataField = data['data'];
+      if (dataField is Map<String, dynamic>) {
+        final nested = dataField['id'];
+        if (nested != null) return int.tryParse(nested.toString());
+      }
+
+      final menuField = data['menu'];
+      if (menuField is Map<String, dynamic>) {
+        final nested = menuField['id'];
+        if (nested != null) return int.tryParse(nested.toString());
+      }
+    }
+    return null;
+  }
+
+  int? _findMenuIdByNameCategory(String name, int categoryId) {
+    final matches = state.menus
+        .where((menu) => menu.name == name && menu.categoryId == categoryId)
+        .toList();
+    if (matches.isEmpty) return null;
+
+    matches.sort((a, b) {
+      final aDate = a.updatedAt ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = b.updatedAt ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+    return matches.first.id;
+  }
+
+  Future<bool> _createMenuAddons(int menuId, List<int> addonIds) async {
+    final uniqueIds = addonIds.toSet();
+    try {
+      for (final addonId in uniqueIds) {
+        await DioClient.instance.post('/api/menu-addons', data: {
+          'menu_id': menuId,
+          'addon_id': addonId,
+        });
+      }
+      return true;
+    } on DioException catch (e) {
+      debugPrint('[MenuManagement] createMenuAddons DioException: ${e.response?.statusCode} ${e.response?.data}');
+      return false;
+    } catch (e, stackTrace) {
+      debugPrint('[MenuManagement] createMenuAddons unexpected error: $e');
+      debugPrint('[MenuManagement] stackTrace: $stackTrace');
+      return false;
+    }
+  }
+
+  Future<bool> _syncMenuAddons(int menuId, List<int> addonIds) async {
+    final targetIds = addonIds.toSet();
+    final current = state.menuAddons.where((m) => m.menuId == menuId).toList();
+    final currentIds = current.map((m) => m.addonId).toSet();
+
+    final toAdd = targetIds.difference(currentIds);
+    final toRemove = currentIds.difference(targetIds);
+
+    try {
+      for (final addonId in toAdd) {
+        await DioClient.instance.post('/api/menu-addons', data: {
+          'menu_id': menuId,
+          'addon_id': addonId,
+        });
+      }
+
+      for (final addonId in toRemove) {
+        final matches = current.where((m) => m.addonId == addonId).toList();
+        for (final item in matches) {
+          await DioClient.instance.delete('/api/menu-addons/${item.id}');
+        }
+      }
+      return true;
+    } on DioException catch (e) {
+      debugPrint('[MenuManagement] syncMenuAddons DioException: ${e.response?.statusCode} ${e.response?.data}');
+      return false;
+    } catch (e, stackTrace) {
+      debugPrint('[MenuManagement] syncMenuAddons unexpected error: $e');
+      debugPrint('[MenuManagement] stackTrace: $stackTrace');
       return false;
     }
   }

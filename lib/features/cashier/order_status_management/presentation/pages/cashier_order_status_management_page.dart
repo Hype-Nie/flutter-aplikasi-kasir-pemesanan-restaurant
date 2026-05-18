@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/features/cashier/order_history/presentation/pages/cashier_order_history_detail_page.dart';
 
 import '../riverpod/cashier_order_status_management_provider.dart';
 
@@ -219,105 +220,169 @@ class _View extends StatelessWidget {
                           final sc = _statusColor(o.status);
                           final canAdvance =
                               o.status == 'accepted' || o.status == 'preparing';
-                          return Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x0A000000),
-                                  blurRadius: 12,
-                                  offset: Offset(0, 4),
+                          return InkWell(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      CashierOrderHistoryDetailPage(order: o),
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            o.orderNumber,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF121212),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x0A000000),
+                                    blurRadius: 12,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              o.orderNumber,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w700,
+                                                color: Color(0xFF121212),
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '${o.orderType.replaceAll('_', ' ')} • ${o.paymentMethod}',
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: Color(0xFF8B8B8B),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${o.orderType.replaceAll('_', ' ')} • ${o.paymentMethod}',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: Color(0xFF8B8B8B),
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 5,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: sc.withValues(alpha: 0.10),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        o.status.toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: sc,
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  _fmt(o.totalAmount),
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: _accent,
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: sc.withValues(alpha: 0.10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          o.status.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: sc,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 14),
-                                Row(
-                                  children: [
-                                    if (canAdvance) ...[
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _InfoPill(
+                                        label: o.paymentMethod.replaceAll(
+                                          '_',
+                                          ' ',
+                                        ),
+                                      ),
+                                      _InfoPill(
+                                        label: o.deliveryMethod.replaceAll(
+                                          '_',
+                                          ' ',
+                                        ),
+                                      ),
+                                      if ((o.tableNumber ?? '').isNotEmpty)
+                                        _InfoPill(label: o.tableNumber!),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    _fmt(o.totalAmount),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: _accent,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Row(
+                                    children: [
+                                      if (canAdvance) ...[
+                                        Expanded(
+                                          child: SizedBox(
+                                            height: 42,
+                                            child: OutlinedButton(
+                                              onPressed: () => onUpdateStatus(
+                                                o.id,
+                                                'cancelled',
+                                              ),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: const Color(
+                                                  0xFFE74C3C,
+                                                ),
+                                                side: const BorderSide(
+                                                  color: Color(0xFFE74C3C),
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'Cancel',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                      ],
                                       Expanded(
                                         child: SizedBox(
                                           height: 42,
-                                          child: OutlinedButton(
-                                            onPressed: () => onUpdateStatus(
-                                              o.id,
-                                              'cancelled',
-                                            ),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: const Color(
-                                                0xFFE74C3C,
-                                              ),
-                                              side: const BorderSide(
-                                                color: Color(0xFFE74C3C),
-                                              ),
+                                          child: ElevatedButton(
+                                            onPressed: canAdvance
+                                                ? () => onUpdateStatus(
+                                                    o.id,
+                                                    _nextStatus(o.status),
+                                                  )
+                                                : null,
+                                            style: ElevatedButton.styleFrom(
+                                              elevation: 0,
+                                              backgroundColor: _accent,
+                                              foregroundColor: Colors.white,
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
                                                     BorderRadius.circular(14),
                                               ),
                                             ),
-                                            child: const Text(
-                                              'Cancel',
-                                              style: TextStyle(
+                                            child: Text(
+                                              _nextLabel(o.status),
+                                              style: const TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
                                               ),
@@ -325,40 +390,22 @@ class _View extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
                                     ],
-                                    Expanded(
-                                      child: SizedBox(
-                                        height: 42,
-                                        child: ElevatedButton(
-                                          onPressed: canAdvance
-                                              ? () => onUpdateStatus(
-                                                  o.id,
-                                                  _nextStatus(o.status),
-                                                )
-                                              : null,
-                                          style: ElevatedButton.styleFrom(
-                                            elevation: 0,
-                                            backgroundColor: _accent,
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(14),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            _nextLabel(o.status),
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  const Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      'Tap for detail',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF8B8B8B),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -366,6 +413,31 @@ class _View extends StatelessWidget {
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F3F3),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF6B6B6B),
         ),
       ),
     );
