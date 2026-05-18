@@ -405,7 +405,11 @@ class _HistoryTile extends StatelessWidget {
             const SizedBox(width: 4),
             if (isCompleted)
               IconButton(
-                icon: const Icon(Icons.print_rounded, color: Color(0xFFFF4D06), size: 22),
+                icon: const Icon(
+                  Icons.print_rounded,
+                  color: Color(0xFFFF4D06),
+                  size: 22,
+                ),
                 onPressed: () => ReceiptPrinter.printReceipt(context, order),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
