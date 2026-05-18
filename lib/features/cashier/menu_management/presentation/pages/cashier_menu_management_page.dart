@@ -7,6 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:restaurant/config/strings/cashier_strings.dart';
 import 'package:restaurant/shared/models/menu.dart';
 import '../riverpod/cashier_menu_management_provider.dart';
+import '../widgets/menu_card.dart';
+import '../widgets/menu_image_picker.dart';
+import '../widgets/menu_sheet_text_field.dart';
 
 class CashierMenuManagementPage extends ConsumerStatefulWidget {
   const CashierMenuManagementPage({super.key});
@@ -192,7 +195,13 @@ class _CashierMenuManagementViewState
 
   Future<XFile?> _pickImage(ImageSource source) async {
     try {
-      return await _imagePicker.pickImage(source: source, imageQuality: 85);
+      return await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 75,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        requestFullMetadata: false,
+      );
     } catch (_) {
       if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -369,7 +378,7 @@ class _CashierMenuManagementViewState
                                 child: child,
                               ),
                             ),
-                            child: _MenuCard(
+                            child: MenuCard(
                               menu: filteredMenus[i],
                               categoryName: _categoryNameForMenu(
                                 filteredMenus[i],
@@ -519,17 +528,17 @@ class _CashierMenuManagementViewState
                   ),
                   const SizedBox(height: 12),
 
-                  _SheetTextField(label: 'Menu Name', controller: nameCtrl),
+                  MenuSheetTextField(label: 'Menu Name', controller: nameCtrl),
                   const SizedBox(height: 12),
-                  _SheetTextField(label: 'Description', controller: descCtrl),
+                  MenuSheetTextField(label: 'Description', controller: descCtrl),
                   const SizedBox(height: 12),
-                  _SheetTextField(
+                  MenuSheetTextField(
                     label: 'Price',
                     controller: priceCtrl,
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 12),
-                  _MenuImagePicker(
+                  MenuImagePicker(
                     selectedImageFile: selectedImageFile,
                     onPickFromGallery: () async {
                       final picked = await _pickImage(ImageSource.gallery);
@@ -691,19 +700,19 @@ class _CashierMenuManagementViewState
                     ),
                   ),
                   const SizedBox(height: 22),
-                  _SheetTextField(label: 'Name', controller: nameCtrl),
+                  MenuSheetTextField(label: 'Name', controller: nameCtrl),
                   const SizedBox(height: 12),
-                  _SheetTextField(label: 'Description', controller: descCtrl),
+                  MenuSheetTextField(label: 'Description', controller: descCtrl),
                   const SizedBox(height: 12),
-                  _SheetTextField(
+                  MenuSheetTextField(
                     label: 'Price',
                     controller: priceCtrl,
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 12),
-                  _MenuImagePicker(
+                  MenuImagePicker(
                     selectedImageFile: selectedImageFile,
-                    existingImageUrl: menu.image,
+                    existingImageUrl: menu.imageUrl,
                     onPickFromGallery: () async {
                       final picked = await _pickImage(ImageSource.gallery);
                       if (picked == null) return;
@@ -847,300 +856,3 @@ class _CashierMenuManagementViewState
   }
 }
 
-// ---------- Menu Card ----------
-
-class _MenuCard extends StatelessWidget {
-  const _MenuCard({
-    required this.menu,
-    required this.categoryName,
-    required this.formattedPrice,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final Menu menu;
-  final String categoryName;
-  final String formattedPrice;
-  final Color accent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(22),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Image placeholder
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.restaurant_rounded,
-                        size: 40,
-                        color: accent.withValues(alpha: 0.30),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Name
-                Text(
-                  menu.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF121212),
-                  ),
-                ),
-                const SizedBox(height: 4),
-
-                // Price + availability
-                Row(
-                  children: [
-                    Text(
-                      formattedPrice,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: menu.isAvailable
-                            ? const Color(0xFF2ECC71)
-                            : const Color(0xFFE74C3C),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-
-                // Category tag
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0F0),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    categoryName,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF8B8B8B),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MenuImagePicker extends StatelessWidget {
-  const _MenuImagePicker({
-    required this.selectedImageFile,
-    required this.onPickFromGallery,
-    required this.onPickFromCamera,
-    this.onClearImage,
-    this.existingImageUrl,
-  });
-
-  final XFile? selectedImageFile;
-  final String? existingImageUrl;
-  final VoidCallback onPickFromGallery;
-  final VoidCallback onPickFromCamera;
-  final VoidCallback? onClearImage;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Menu Image',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF8B8B8B),
-          ),
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            width: double.infinity,
-            height: 160,
-            color: const Color(0xFFF5F5F5),
-            child: _buildPreview(),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onPickFromGallery,
-                icon: const Icon(Icons.photo_library_outlined, size: 18),
-                label: const Text('Gallery'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFFF4D06),
-                  side: const BorderSide(color: Color(0xFFFF4D06)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onPickFromCamera,
-                icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                label: const Text('Camera'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFFF4D06),
-                  side: const BorderSide(color: Color(0xFFFF4D06)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-              ),
-            ),
-            if (onClearImage != null) ...[
-              const SizedBox(width: 10),
-              IconButton(
-                onPressed: onClearImage,
-                icon: const Icon(Icons.close_rounded),
-                tooltip: 'Clear selected image',
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPreview() {
-    if (selectedImageFile != null) {
-      return Image.file(File(selectedImageFile!.path), fit: BoxFit.cover);
-    }
-
-    final url = existingImageUrl?.trim();
-    if (url != null && url.isNotEmpty) {
-      return Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _buildPlaceholder(),
-      );
-    }
-
-    return _buildPlaceholder();
-  }
-
-  Widget _buildPlaceholder() {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.image_outlined, size: 34, color: Color(0xFFB5B5B5)),
-          SizedBox(height: 6),
-          Text(
-            'No image selected',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF9B9B9B),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------- Sheet Text Field ----------
-
-class _SheetTextField extends StatelessWidget {
-  const _SheetTextField({
-    required this.label,
-    this.controller,
-    this.maxLines = 1,
-    this.keyboardType,
-  });
-
-  final String label;
-  final TextEditingController? controller;
-  final int maxLines;
-  final TextInputType? keyboardType;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF8B8B8B),
-        ),
-        filled: true,
-        fillColor: const Color(0xFFF5F5F5),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFFF4D06), width: 1.5),
-        ),
-      ),
-    );
-  }
-}

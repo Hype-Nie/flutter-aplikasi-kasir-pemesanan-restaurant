@@ -1,9 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_parser/http_parser.dart';
-import 'package:image_picker/image_picker.dart';
 
 import 'package:restaurant/config/strings/cashier_strings.dart';
 import 'package:restaurant/core/network/dio_client.dart';
@@ -45,6 +47,8 @@ class CashierMenuManagementState extends Equatable {
 
 class CashierMenuManagementNotifier
     extends Notifier<CashierMenuManagementState> {
+  static const int _maxImageBytes = 2 * 1024 * 1024; // 2MB
+
   @override
   CashierMenuManagementState build() => const CashierMenuManagementState();
 
@@ -114,21 +118,10 @@ class CashierMenuManagementNotifier
         body['description'] = description;
       }
       if (imageFile != null) {
-        final mime = _mimeFromPath(imageFile.path);
-        body['image'] = await MultipartFile.fromFile(
-          imageFile.path,
-          filename: imageFile.name,
-          contentType: mime,
-        );
-        debugPrint('[MenuManagement] createMenu with image: ${imageFile.name} (${mime.mimeType})');
-        await DioClient.instance.post(
-          '/api/menus',
-          data: FormData.fromMap(body),
-        );
-      } else {
-        debugPrint('[MenuManagement] createMenu without image');
-        await DioClient.instance.post('/api/menus', data: body);
+        body['image'] = await _buildMenuImagePart(imageFile);
       }
+      debugPrint('[MenuManagement] createMenu multipart keys: ${body.keys.join(",")}');
+      await DioClient.instance.post('/api/menus', data: FormData.fromMap(body));
 
       state = state.copyWith(
         status: CashierMenuManagementStatus.success,
@@ -137,6 +130,12 @@ class CashierMenuManagementNotifier
 
       await fetchMenus();
       return true;
+    } on _MenuImageUploadException catch (e) {
+      state = state.copyWith(
+        status: CashierMenuManagementStatus.failure,
+        message: e.message,
+      );
+      return false;
     } on DioException catch (e) {
       debugPrint('[MenuManagement] createMenu DioException: ${e.response?.statusCode} ${e.response?.data}');
       state = state.copyWith(
@@ -178,18 +177,16 @@ class CashierMenuManagementNotifier
       if (isAvailable != null) data['is_available'] = isAvailable ? 1 : 0;
 
       if (imageFile != null) {
-        final mime = _mimeFromPath(imageFile.path);
-        data['image'] = await MultipartFile.fromFile(
-          imageFile.path,
-          filename: imageFile.name,
-          contentType: mime,
-        );
+        data['image'] = await _buildMenuImagePart(imageFile);
         // Laravel doesn't support PUT with multipart, use POST + _method
         data['_method'] = 'PUT';
-        debugPrint('[MenuManagement] updateMenu $id with image: ${imageFile.name}');
+        debugPrint('[MenuManagement] updateMenu $id multipart keys: ${data.keys.join(",")}');
         await DioClient.instance.post(
           '/api/menus/$id',
           data: FormData.fromMap(data),
+          options: Options(
+            headers: const {'X-HTTP-Method-Override': 'PUT'},
+          ),
         );
       } else {
         debugPrint('[MenuManagement] updateMenu $id without image, data: $data');
@@ -203,6 +200,12 @@ class CashierMenuManagementNotifier
 
       await fetchMenus();
       return true;
+    } on _MenuImageUploadException catch (e) {
+      state = state.copyWith(
+        status: CashierMenuManagementStatus.failure,
+        message: e.message,
+      );
+      return false;
     } on DioException catch (e) {
       debugPrint('[MenuManagement] updateMenu DioException: ${e.response?.statusCode} ${e.response?.data}');
       state = state.copyWith(
@@ -276,8 +279,66 @@ class CashierMenuManagementNotifier
     return fallback;
   }
 
-  MediaType _mimeFromPath(String path) {
-    final ext = path.split('.').last.toLowerCase();
+  Future<MultipartFile> _buildMenuImagePart(XFile imageFile) async {
+    final originalBytes = await imageFile.readAsBytes();
+    final ext = _fileExtension(imageFile.name);
+    Uint8List uploadBytes = Uint8List.fromList(originalBytes);
+    MediaType contentType = _mimeFromExt(ext);
+    var filename = imageFile.name;
+
+    final unsupportedExt = ext != 'jpg' &&
+        ext != 'jpeg' &&
+        ext != 'png' &&
+        ext != 'gif' &&
+        ext != 'webp' &&
+        ext != 'bmp';
+    final tooLarge = uploadBytes.length > _maxImageBytes;
+
+    if (unsupportedExt || tooLarge) {
+      uploadBytes = await _compressToJpeg(uploadBytes);
+      contentType = MediaType('image', 'jpeg');
+      filename = '${_fileNameWithoutExtension(imageFile.name)}.jpg';
+    }
+
+    if (uploadBytes.length > _maxImageBytes) {
+      throw const _MenuImageUploadException('Image maksimal 2MB.');
+    }
+
+    return MultipartFile.fromBytes(
+      uploadBytes,
+      filename: filename,
+      contentType: contentType,
+    );
+  }
+
+  Future<Uint8List> _compressToJpeg(Uint8List input) async {
+    final compressed = await FlutterImageCompress.compressWithList(
+      input,
+      minWidth: 1280,
+      minHeight: 1280,
+      quality: 75,
+      format: CompressFormat.jpeg,
+      keepExif: false,
+    );
+    if (compressed.isEmpty) {
+      throw const _MenuImageUploadException('Gagal memproses gambar.');
+    }
+    return compressed;
+  }
+
+  String _fileExtension(String filename) {
+    final idx = filename.lastIndexOf('.');
+    if (idx == -1 || idx == filename.length - 1) return '';
+    return filename.substring(idx + 1).toLowerCase();
+  }
+
+  String _fileNameWithoutExtension(String filename) {
+    final idx = filename.lastIndexOf('.');
+    if (idx <= 0) return filename;
+    return filename.substring(0, idx);
+  }
+
+  MediaType _mimeFromExt(String ext) {
     switch (ext) {
       case 'jpg':
       case 'jpeg':
@@ -288,10 +349,18 @@ class CashierMenuManagementNotifier
         return MediaType('image', 'gif');
       case 'webp':
         return MediaType('image', 'webp');
+      case 'bmp':
+        return MediaType('image', 'bmp');
       default:
         return MediaType('image', 'jpeg');
     }
   }
+}
+
+class _MenuImageUploadException implements Exception {
+  const _MenuImageUploadException(this.message);
+
+  final String message;
 }
 
 final cashierMenuManagementProvider =

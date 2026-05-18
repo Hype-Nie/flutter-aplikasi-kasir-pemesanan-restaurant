@@ -19,7 +19,37 @@ class CashierHomeTab extends ConsumerWidget {
     return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
   }
 
-  void _showPrintSelectionSheet(BuildContext context, List<Order> completedOrders) {
+  String _formatOrderTime(DateTime? orderTime) {
+    if (orderTime == null) return '-';
+    final localTime = orderTime.toLocal();
+    final day = localTime.day.toString().padLeft(2, '0');
+    final month = localTime.month.toString().padLeft(2, '0');
+    final hour = localTime.hour.toString().padLeft(2, '0');
+    final minute = localTime.minute.toString().padLeft(2, '0');
+    return '$day/$month $hour:$minute';
+  }
+
+  String _buildOrderSearchText(Order order) {
+    final orderTime = order.createdAt ?? order.updatedAt;
+    final menuNames = order.items.map((item) => item.menuName).join(' ');
+    final timeStr = _formatOrderTime(orderTime);
+    return [
+      order.orderNumber,
+      order.orderType,
+      order.paymentMethod,
+      order.deliveryMethod,
+      menuNames,
+      timeStr,
+    ].join(' ').toLowerCase();
+  }
+
+  bool _matchesQuery(Order order, String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return true;
+    return _buildOrderSearchText(order).contains(normalized);
+  }
+
+  Future<void> _showPrintSelectionSheet(BuildContext context, List<Order> completedOrders) async {
     if (completedOrders.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No completed orders available to print')),
@@ -34,78 +64,20 @@ class CashierHomeTab extends ConsumerWidget {
         return bDate.compareTo(aDate);
       });
 
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD0D0D0),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Select Receipt to Print',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF121212),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: sorted.length,
-                itemBuilder: (context, index) {
-                  final order = sorted[index];
-                  final orderTime = order.createdAt ?? order.updatedAt;
-                  final timeStr = orderTime != null
-                      ? '${orderTime.toLocal().day.toString().padLeft(2, '0')}/${orderTime.toLocal().month.toString().padLeft(2, '0')} ${orderTime.toLocal().hour.toString().padLeft(2, '0')}:${orderTime.toLocal().minute.toString().padLeft(2, '0')}'
-                      : '-';
-
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: _accent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.receipt_long, color: _accent, size: 20),
-                    ),
-                    title: Text(
-                      order.orderNumber,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                    ),
-                    subtitle: Text(
-                      '$timeStr  •  ${_formatPrice(order.totalAmount)}',
-                      style: const TextStyle(color: Color(0xFF8B8B8B), fontSize: 13),
-                    ),
-                    trailing: const Icon(Icons.print_rounded, color: _accent, size: 22),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      ReceiptPrinter.printReceipt(context, order);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+      builder: (ctx) => _PrintReceiptSheet(
+        orders: sorted,
+        accentColor: _accent,
+        formatPrice: _formatPrice,
+        formatOrderTime: _formatOrderTime,
+        matchesQuery: _matchesQuery,
+        onPrint: (order) {
+          Navigator.pop(ctx);
+          ReceiptPrinter.printReceipt(context, order);
+        },
       ),
     );
   }
@@ -290,6 +262,165 @@ class CashierHomeTab extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrintReceiptSheet extends StatefulWidget {
+  const _PrintReceiptSheet({
+    required this.orders,
+    required this.accentColor,
+    required this.formatPrice,
+    required this.formatOrderTime,
+    required this.matchesQuery,
+    required this.onPrint,
+  });
+
+  final List<Order> orders;
+  final Color accentColor;
+  final String Function(double) formatPrice;
+  final String Function(DateTime?) formatOrderTime;
+  final bool Function(Order, String) matchesQuery;
+  final void Function(Order) onPrint;
+
+  @override
+  State<_PrintReceiptSheet> createState() => _PrintReceiptSheetState();
+}
+
+class _PrintReceiptSheetState extends State<_PrintReceiptSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearQuery() {
+    _searchController.clear();
+    setState(() => _query = '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.orders
+        .where((order) => widget.matchesQuery(order, _query))
+        .toList();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD0D0D0),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Select Receipt to Print',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF121212),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _query = value),
+            decoration: InputDecoration(
+              hintText: 'Search order number, menu, date (dd/MM)',
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: const Color(0xFFF6F6F6),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(
+                'Showing ${filtered.length} of ${widget.orders.length}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF8B8B8B),
+                ),
+              ),
+              const Spacer(),
+              if (_query.trim().isNotEmpty)
+                TextButton(
+                  onPressed: _clearQuery,
+                  style: TextButton.styleFrom(foregroundColor: widget.accentColor),
+                  child: const Text(
+                    'Clear',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: filtered.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No matching orders found',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF8B8B8B),
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final order = filtered[index];
+                      final orderTime = order.createdAt ?? order.updatedAt;
+                      final timeStr = widget.formatOrderTime(orderTime);
+
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: widget.accentColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.receipt_long, color: widget.accentColor, size: 20),
+                        ),
+                        title: Text(
+                          order.orderNumber,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        ),
+                        subtitle: Text(
+                          '$timeStr  •  ${widget.formatPrice(order.totalAmount)}',
+                          style: const TextStyle(color: Color(0xFF8B8B8B), fontSize: 13),
+                        ),
+                        trailing: Icon(Icons.print_rounded, color: widget.accentColor, size: 22),
+                        onTap: () => widget.onPrint(order),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
