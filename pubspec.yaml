@@ -16,6 +16,10 @@ dependencies:
   dio: ^5.7.0
   shared_preferences: ^2.5.0
   image_picker: ^1.1.2
+  http_parser: ^4.1.0
+  flutter_image_compress: ^2.3.0
+  pdf: ^3.11.3
+  printing: ^5.13.4
 
 dev_dependencies:
   flutter_test:
