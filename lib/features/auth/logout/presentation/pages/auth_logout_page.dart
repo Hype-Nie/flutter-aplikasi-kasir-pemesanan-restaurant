@@ -34,9 +34,7 @@ class _AuthLogoutPageState extends ConsumerState<AuthLogoutPage> {
     });
 
     return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(color: Color(0xFFFF4D06)),
-      ),
+      body: Center(child: CircularProgressIndicator(color: Color(0xFFFF4D06))),
     );
   }
 }

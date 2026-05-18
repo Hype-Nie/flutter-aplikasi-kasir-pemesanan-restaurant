@@ -29,8 +29,7 @@ class CashierOrderHistoryTab extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(Icons.calendar_today_rounded,
-                  size: 18, color: _accent),
+              Icon(Icons.calendar_today_rounded, size: 18, color: _accent),
               const SizedBox(width: 10),
               const Text(
                 'Today',
@@ -41,8 +40,7 @@ class CashierOrderHistoryTab extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.arrow_drop_down_rounded,
-                  size: 24, color: _accent),
+              Icon(Icons.arrow_drop_down_rounded, size: 24, color: _accent),
             ],
           ),
         ),
@@ -150,8 +148,9 @@ class _HistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = _statuses[index % _statuses.length];
     final isCompleted = status == 'Completed';
-    final color =
-        isCompleted ? const Color(0xFF2ECC71) : const Color(0xFFE74C3C);
+    final color = isCompleted
+        ? const Color(0xFF2ECC71)
+        : const Color(0xFFE74C3C);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -210,8 +209,7 @@ class _HistoryTile extends StatelessWidget {
             ),
           ),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(20),

@@ -54,8 +54,14 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
 
   @override
   void dispose() {
-    for (final c in [_loginEmail, _loginPassword, _signupName, _signupEmail,
-        _signupPassword, _signupConfirmPassword]) {
+    for (final c in [
+      _loginEmail,
+      _loginPassword,
+      _signupName,
+      _signupEmail,
+      _signupPassword,
+      _signupConfirmPassword,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -69,9 +75,9 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
     });
   }
 
-  void _showError(String message) => ScaffoldMessenger.of(context)
-      .showSnackBar(SnackBar(
-          content: Text(message), backgroundColor: Colors.red.shade700));
+  void _showError(String message) => ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message), backgroundColor: Colors.red.shade700),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -80,10 +86,14 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
 
     ref.listen(authLoginProvider, (_, next) {
       if (next.status == AuthLoginStatus.success && next.user != null) {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => next.user!.isCashier
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => next.user!.isCashier
                 ? const CashierDashboardPage()
-                : const CustomerDashboardPage()));
+                : const CustomerDashboardPage(),
+          ),
+        );
         return;
       }
       if (next.status == AuthLoginStatus.failure && next.message.isNotEmpty) {
@@ -92,11 +102,14 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
     });
     ref.listen(authRegisterProvider, (_, next) {
       if (next.status == AuthRegisterStatus.success) {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const CustomerDashboardPage()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CustomerDashboardPage()),
+        );
         return;
       }
-      if (next.status == AuthRegisterStatus.failure && next.message.isNotEmpty) {
+      if (next.status == AuthRegisterStatus.failure &&
+          next.message.isNotEmpty) {
         _showError(next.message);
       }
     });
@@ -104,7 +117,10 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
     final size = MediaQuery.sizeOf(context);
     final isSmall = size.height < 720;
     final horizontal = (size.width * 0.10).clamp(20.0, 48.0);
-    final topPanelHeight = (size.height * (isSmall ? 0.33 : 0.36)).clamp(230.0, 320.0);
+    final topPanelHeight = (size.height * (isSmall ? 0.33 : 0.36)).clamp(
+      230.0,
+      320.0,
+    );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -133,7 +149,11 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
                         Expanded(
                           child: Padding(
                             padding: EdgeInsets.fromLTRB(
-                                horizontal, isSmall ? 22 : 30, horizontal, 26),
+                              horizontal,
+                              isSmall ? 22 : 30,
+                              horizontal,
+                              26,
+                            ),
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 320),
                               switchInCurve: Curves.easeOutCubic,
@@ -145,8 +165,10 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
                                 ).animate(animation);
                                 return FadeTransition(
                                   opacity: animation,
-                                  child:
-                                      SlideTransition(position: offset, child: child),
+                                  child: SlideTransition(
+                                    position: offset,
+                                    child: child,
+                                  ),
                                 );
                               },
                               child: _isLogin
@@ -156,14 +178,17 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
                                       email: _loginEmail,
                                       password: _loginPassword,
                                       isLoading:
-                                          loginState.status == AuthLoginStatus.loading,
+                                          loginState.status ==
+                                          AuthLoginStatus.loading,
                                       onLogin: () {
                                         if (loginState.status !=
                                             AuthLoginStatus.loading) {
                                           ref
                                               .read(authLoginProvider.notifier)
-                                              .login(_loginEmail.text.trim(),
-                                                  _loginPassword.text);
+                                              .login(
+                                                _loginEmail.text.trim(),
+                                                _loginPassword.text,
+                                              );
                                         }
                                       },
                                     )
@@ -174,19 +199,23 @@ class _AuthLoginViewState extends ConsumerState<_AuthLoginView> {
                                       email: _signupEmail,
                                       password: _signupPassword,
                                       confirmPassword: _signupConfirmPassword,
-                                      isLoading: registerState.status ==
+                                      isLoading:
+                                          registerState.status ==
                                           AuthRegisterStatus.loading,
                                       onSignUp: () {
                                         if (registerState.status !=
                                             AuthRegisterStatus.loading) {
                                           ref
-                                              .read(authRegisterProvider.notifier)
+                                              .read(
+                                                authRegisterProvider.notifier,
+                                              )
                                               .register(
-                                                  name: _signupName.text.trim(),
-                                                  email: _signupEmail.text.trim(),
-                                                  password: _signupPassword.text,
-                                                  passwordConfirmation:
-                                                      _signupConfirmPassword.text);
+                                                name: _signupName.text.trim(),
+                                                email: _signupEmail.text.trim(),
+                                                password: _signupPassword.text,
+                                                passwordConfirmation:
+                                                    _signupConfirmPassword.text,
+                                              );
                                         }
                                       },
                                     ),

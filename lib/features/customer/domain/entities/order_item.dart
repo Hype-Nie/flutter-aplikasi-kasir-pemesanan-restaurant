@@ -29,7 +29,14 @@ class OrderItem extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, orderId, menuId, quantity, unitPrice, subtotal];
+  List<Object?> get props => [
+    id,
+    orderId,
+    menuId,
+    quantity,
+    unitPrice,
+    subtotal,
+  ];
 }
 
 class OrderItemAddon extends Equatable {

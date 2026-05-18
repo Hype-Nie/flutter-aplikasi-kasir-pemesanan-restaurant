@@ -22,8 +22,7 @@ class CashierIncomingOrdersTab extends StatelessWidget {
           child: const TextField(
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
-              prefixIcon:
-                  Icon(Icons.search, size: 24, color: Colors.black54),
+              prefixIcon: Icon(Icons.search, size: 24, color: Colors.black54),
               hintText: 'Search order...',
               hintStyle: TextStyle(
                 fontSize: 14,
@@ -78,9 +77,7 @@ class _FilterChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: selected ? accent : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: selected ? accent : const Color(0xFFD0D0D0),
-        ),
+        border: Border.all(color: selected ? accent : const Color(0xFFD0D0D0)),
       ),
       child: Text(
         label,
@@ -100,7 +97,13 @@ class _IncomingOrderCard extends StatelessWidget {
   final int index;
 
   static const _accent = Color(0xFFFF4D06);
-  static const _types = ['Dine-in', 'Takeaway', 'Dine-in', 'Takeaway', 'Dine-in'];
+  static const _types = [
+    'Dine-in',
+    'Takeaway',
+    'Dine-in',
+    'Takeaway',
+    'Dine-in',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +137,9 @@ class _IncomingOrderCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  isDineIn ? Icons.table_restaurant_rounded : Icons.takeout_dining_rounded,
+                  isDineIn
+                      ? Icons.table_restaurant_rounded
+                      : Icons.takeout_dining_rounded,
                   color: _accent,
                   size: 20,
                 ),
@@ -165,7 +170,10 @@ class _IncomingOrderCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF39C12).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),

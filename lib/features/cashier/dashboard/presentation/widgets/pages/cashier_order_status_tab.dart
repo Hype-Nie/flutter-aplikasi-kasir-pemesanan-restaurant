@@ -93,7 +93,13 @@ class _OrderStatusCard extends StatelessWidget {
   final int index;
 
   static const _accent = Color(0xFFFF4D06);
-  static const _statuses = ['Preparing', 'Ready', 'Preparing', 'Served', 'Ready'];
+  static const _statuses = [
+    'Preparing',
+    'Ready',
+    'Preparing',
+    'Served',
+    'Ready',
+  ];
   static const _colors = [
     Color(0xFFF39C12),
     Color(0xFF2ECC71),
@@ -169,8 +175,10 @@ class _OrderStatusCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),

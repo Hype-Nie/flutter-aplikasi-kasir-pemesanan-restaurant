@@ -40,23 +40,28 @@ class CustomerOrderHistoryState extends Equatable {
     List<OrderItemAddon>? orderItemAddons,
     Map<int, Menu>? menus,
     Map<int, Addon>? addons,
-  }) =>
-      CustomerOrderHistoryState(
-        status: status ?? this.status,
-        message: message ?? this.message,
-        orders: orders ?? this.orders,
-        orderDetail: orderDetail ?? this.orderDetail,
-        orderItems: orderItems ?? this.orderItems,
-        orderItemAddons: orderItemAddons ?? this.orderItemAddons,
-        menus: menus ?? this.menus,
-        addons: addons ?? this.addons,
-      );
+  }) => CustomerOrderHistoryState(
+    status: status ?? this.status,
+    message: message ?? this.message,
+    orders: orders ?? this.orders,
+    orderDetail: orderDetail ?? this.orderDetail,
+    orderItems: orderItems ?? this.orderItems,
+    orderItemAddons: orderItemAddons ?? this.orderItemAddons,
+    menus: menus ?? this.menus,
+    addons: addons ?? this.addons,
+  );
 
   @override
   List<Object?> get props => [
-        status, message, orders, orderDetail,
-        orderItems, orderItemAddons, menus, addons,
-      ];
+    status,
+    message,
+    orders,
+    orderDetail,
+    orderItems,
+    orderItemAddons,
+    menus,
+    addons,
+  ];
 }
 
 class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
@@ -64,7 +69,10 @@ class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
   CustomerOrderHistoryState build() => const CustomerOrderHistoryState();
 
   Future<void> fetchOrders() async {
-    state = state.copyWith(status: CustomerOrderHistoryStatus.loading, message: '');
+    state = state.copyWith(
+      status: CustomerOrderHistoryStatus.loading,
+      message: '',
+    );
 
     try {
       final userId = await TokenStorage.getUserId();
@@ -93,7 +101,10 @@ class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
   }
 
   Future<void> fetchOrderDetail(int orderId) async {
-    state = state.copyWith(status: CustomerOrderHistoryStatus.loading, message: '');
+    state = state.copyWith(
+      status: CustomerOrderHistoryStatus.loading,
+      message: '',
+    );
 
     try {
       final results = await Future.wait([
@@ -112,8 +123,7 @@ class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
           .toList();
 
       final allItemAddons = (results[2].data as List<dynamic>)
-          .map((json) =>
-              OrderItemAddon.fromJson(json as Map<String, dynamic>))
+          .map((json) => OrderItemAddon.fromJson(json as Map<String, dynamic>))
           .toList();
 
       final orderItemIds = orderItems.map((item) => item.id).toSet();
@@ -168,7 +178,7 @@ class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
   }
 }
 
-final customerOrderHistoryProvider = NotifierProvider<
-    CustomerOrderHistoryNotifier, CustomerOrderHistoryState>(
-  CustomerOrderHistoryNotifier.new,
-);
+final customerOrderHistoryProvider =
+    NotifierProvider<CustomerOrderHistoryNotifier, CustomerOrderHistoryState>(
+      CustomerOrderHistoryNotifier.new,
+    );

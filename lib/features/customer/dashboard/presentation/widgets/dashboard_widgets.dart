@@ -62,58 +62,91 @@ class DashboardHomeContent extends StatelessWidget {
     return ColoredBox(
       color: bg,
       child: SafeArea(
-        child: Stack(children: [
-          CustomScrollView(slivers: [
-            SliverToBoxAdapter(
-              child: DashboardHeader(
-                iconSize: iconSize, titleSize: titleSize, isDrawerOpen: isDrawerOpen,
-                searchController: searchController, onMenuTap: onMenuTap, onCartTap: onCartTap,
-                onSearchChanged: onSearchChanged, onSearchSubmit: onSearchSubmit, cartCount: cartCount,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: categories.isEmpty
-                  ? const ShimmerCategoryTabs()
-                  : CategoryTabs(categories: categories, selectedIndex: selectedCategory, onSelect: onSelectCategory),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 18),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: onSeeMoreTap,
-                    style: TextButton.styleFrom(foregroundColor: accent),
-                    child: const Text('see more', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+        child: Stack(
+          children: [
+            CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: DashboardHeader(
+                    iconSize: iconSize,
+                    titleSize: titleSize,
+                    isDrawerOpen: isDrawerOpen,
+                    searchController: searchController,
+                    onMenuTap: onMenuTap,
+                    onCartTap: onCartTap,
+                    onSearchChanged: onSearchChanged,
+                    onSearchSubmit: onSearchSubmit,
+                    cartCount: cartCount,
                   ),
                 ),
+                SliverToBoxAdapter(
+                  child: categories.isEmpty
+                      ? const ShimmerCategoryTabs()
+                      : CategoryTabs(
+                          categories: categories,
+                          selectedIndex: selectedCategory,
+                          onSelect: onSelectCategory,
+                        ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 18),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: onSeeMoreTap,
+                        style: TextButton.styleFrom(foregroundColor: accent),
+                        child: const Text(
+                          'see more',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (isLoading)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 24,
+                      ),
+                      child: ProductCarouselShimmer(),
+                    ),
+                  )
+                else if (showingItems.isEmpty)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 60,
+                      ),
+                      child: _EmptyCategoryContent(),
+                    ),
+                  )
+                else
+                  SliverToBoxAdapter(
+                    child: ProductCarousel(
+                      items: showingItems,
+                      cardWidth: cardWidth,
+                      onVisibleIndexChanged: onVisibleMenuChanged,
+                    ),
+                  ),
+                const SliverToBoxAdapter(child: SizedBox(height: 110)),
+              ],
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: BottomNavBar(
+                selectedIndex: selectedBottomNav,
+                onSelect: onSelectBottomNav,
               ),
             ),
-            if (isLoading)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-                  child: ProductCarouselShimmer(),
-                ),
-              )
-            else if (showingItems.isEmpty)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 60),
-                  child: _EmptyCategoryContent(),
-                ),
-              )
-            else
-              SliverToBoxAdapter(
-                child: ProductCarousel(items: showingItems, cardWidth: cardWidth, onVisibleIndexChanged: onVisibleMenuChanged),
-              ),
-            const SliverToBoxAdapter(child: SizedBox(height: 110)),
-          ]),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: BottomNavBar(selectedIndex: selectedBottomNav, onSelect: onSelectBottomNav),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }
@@ -124,13 +157,22 @@ class _EmptyCategoryContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.inventory_2_outlined, size: 120, color: Color(0xFFC7C7C7)),
-      SizedBox(height: 24),
-      Text('No items found', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-      SizedBox(height: 12),
-      Text('This category has no items.', textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.4)),
-    ]);
+    return const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.inventory_2_outlined, size: 120, color: Color(0xFFC7C7C7)),
+        SizedBox(height: 24),
+        Text(
+          'No items found',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+        ),
+        SizedBox(height: 12),
+        Text(
+          'This category has no items.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.4),
+        ),
+      ],
+    );
   }
 }

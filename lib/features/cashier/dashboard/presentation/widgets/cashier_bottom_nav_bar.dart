@@ -45,10 +45,11 @@ class CashierBottomNavBar extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOut,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: active ? accent.withValues(alpha: 0.10) : Colors.transparent,
+                color: active
+                    ? accent.withValues(alpha: 0.10)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Column(

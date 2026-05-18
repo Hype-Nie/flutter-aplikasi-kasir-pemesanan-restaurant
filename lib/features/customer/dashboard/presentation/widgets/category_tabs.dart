@@ -73,10 +73,13 @@ class ShimmerCategoryTabs extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Row(
-          children: List.generate(4, (i) => Padding(
-            padding: EdgeInsets.only(left: i == 0 ? 0 : 18),
-            child: const ShimmerBlock(width: 80, height: 36, radius: 8),
-          )),
+          children: List.generate(
+            4,
+            (i) => Padding(
+              padding: EdgeInsets.only(left: i == 0 ? 0 : 18),
+              child: const ShimmerBlock(width: 80, height: 36, radius: 8),
+            ),
+          ),
         ),
       ),
     );

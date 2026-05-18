@@ -34,18 +34,13 @@ class _SplashPageState extends State<SplashPage> {
 
   void _navigate(Widget page) {
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => page),
-    );
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
   }
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(color: Color(0xFFFF4D06)),
-      ),
+      body: Center(child: CircularProgressIndicator(color: Color(0xFFFF4D06))),
     );
   }
 }
