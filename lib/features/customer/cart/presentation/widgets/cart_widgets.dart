@@ -166,7 +166,7 @@ class CartItemTile extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              formatCurrency(item.subtotal),
+                              formatCurrency(item.totalWithAddons),
                               style: TextStyle(
                                 color: accent,
                                 fontWeight: FontWeight.w800,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:restaurant/core/utils/currency_formatter.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
 import '../../../checkout/presentation/pages/customer_checkout_page.dart';

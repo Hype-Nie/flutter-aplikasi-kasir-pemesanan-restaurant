@@ -40,13 +40,21 @@ class CartItem extends Equatable {
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
     id: json['id'] as int,
     menuId: int.tryParse(json['menu_id'].toString()) ?? 0,
-    menuName: json['menu_name'] as String? ?? '',
+    menuName: json['menu']?['name'] as String? ?? json['menu_name'] as String? ?? 'Unknown',
     unitPrice: json['unit_price'] as String? ?? '0',
     menuImageUrl: json['menu_image_url'] as String? ?? '',
     quantity: int.tryParse(json['quantity'].toString()) ?? 1,
     subtotal: json['subtotal'] as String? ?? '0',
-    addons: const [], // Addons usually fetched separately or joined in provider
+    addons: const [],
   );
+
+  String get totalWithAddons {
+    double total = double.tryParse(subtotal) ?? 0;
+    for (final addon in addons) {
+      total += (double.tryParse(addon.addonPrice) ?? 0) * quantity;
+    }
+    return total.toStringAsFixed(2);
+  }
 
   @override
   List<Object?> get props => [

@@ -24,9 +24,6 @@ class CustomerCartState extends Equatable {
     double total = 0;
     for (final item in items) {
       total += double.tryParse(item.subtotal) ?? 0;
-      for (final addon in item.addons) {
-        total += double.tryParse(addon.addonPrice) ?? 0;
-      }
     }
     return total.toStringAsFixed(2);
   }
@@ -144,12 +141,15 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
       final userId = await TokenStorage.getUserId();
       if (userId == null) return;
 
+      final addonTotal = addonNames.fold<double>(0, (s, p) => s + (double.tryParse(p) ?? 0));
+      final subtotal = (double.tryParse(unitPrice) ?? 0) + addonTotal;
+
       final cartData = {
         'user_id': userId.toString(),
         'menu_id': menuId.toString(),
         'quantity': '1',
         'unit_price': unitPrice,
-        'subtotal': unitPrice,
+        'subtotal': subtotal.toStringAsFixed(2),
       };
 
       final cartResponse = await DioClient.instance.post(
@@ -213,11 +213,13 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
     if (currentItem == null) return;
 
     final unitPrice = double.tryParse(currentItem.unitPrice) ?? 0;
+    final addonTotal = currentItem.addons.fold<double>(0, (s, a) => s + (double.tryParse(a.addonPrice) ?? 0));
+    final itemSubtotal = (unitPrice + addonTotal) * quantity;
     final optimisticItems = state.items.map((i) {
       if (i.id == cartId) {
         return currentItem.copyWith(
           quantity: quantity,
-          subtotal: (unitPrice * quantity).toStringAsFixed(2),
+          subtotal: itemSubtotal.toStringAsFixed(2),
         );
       }
       return i;
@@ -235,7 +237,7 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
         'menu_id': currentItem.menuId.toString(),
         'quantity': quantity.toString(),
         'unit_price': currentItem.unitPrice,
-        'subtotal': (unitPrice * quantity).toStringAsFixed(2),
+        'subtotal': itemSubtotal.toStringAsFixed(2),
       };
 
       final cartResponse = await DioClient.instance.post(
