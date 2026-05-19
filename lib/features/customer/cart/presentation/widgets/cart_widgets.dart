@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:restaurant/core/utils/currency_formatter.dart';
 import 'package:restaurant/features/customer/cart/domain/entities/cart_item.dart';
+import 'package:restaurant/shared/widgets/tappable_card.dart';
 
 class CartItemTile extends StatelessWidget {
   final CartItem item;
@@ -253,9 +254,8 @@ class _Btn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return TappableCard(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Text(
@@ -278,11 +278,14 @@ class _ActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 45,
-      height: 45,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      child: Icon(icon, color: Colors.white, size: 20),
+    return TappableCard(
+      onTap: () {}, // Default empty tap for visual feedback if needed
+      child: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
     );
   }
 }

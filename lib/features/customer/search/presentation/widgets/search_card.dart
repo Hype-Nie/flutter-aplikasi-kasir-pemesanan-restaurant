@@ -3,6 +3,7 @@ import 'package:restaurant/config/constants/api_constants.dart';
 import 'package:restaurant/core/utils/currency_formatter.dart';
 import 'package:restaurant/features/customer/dashboard/presentation/widgets/dashboard_placeholder.dart';
 import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
+import 'package:restaurant/shared/widgets/tappable_card.dart';
 
 class SearchCard extends StatelessWidget {
   final Map<String, String> item;
@@ -17,7 +18,7 @@ class SearchCard extends StatelessWidget {
       imageUrl = '${ApiConstants.baseUrl}/$imageUrl';
     }
 
-    return GestureDetector(
+    return TappableCard(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(

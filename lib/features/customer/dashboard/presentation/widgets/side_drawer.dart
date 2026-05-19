@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:restaurant/core/utils/helpers.dart';
 import 'package:restaurant/features/auth/logout/presentation/pages/auth_logout_page.dart';
 import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
 import 'package:restaurant/features/customer/profile/presentation/pages/customer_profile_page.dart';
@@ -106,9 +107,7 @@ class DrawerAction extends StatelessWidget {
     return InkWell(
       onTap:
           onTap ??
-          () => ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('$title tapped'))),
+          () => AppHelpers.showSnackBar(context, '$title tapped'),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(

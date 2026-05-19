@@ -2,6 +2,8 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:restaurant/core/utils/currency_formatter.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
+import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
+import 'package:restaurant/shared/widgets/tappable_card.dart';
 
 import 'dashboard_model.dart';
 import 'dashboard_placeholder.dart';
@@ -66,8 +68,25 @@ class ProductCarousel extends StatelessWidget {
               enableInfiniteScroll: false,
               onPageChanged: (index, reason) => onVisibleIndexChanged(index),
             ),
-            itemBuilder: (_, index, __) =>
-                FoodCard(item: renderItems[index], width: cardWidth),
+            itemBuilder: (_, index, __) {
+              final item = renderItems[index];
+              return TappableCard(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CustomerMenuDetailPage(
+                      menuId: item.id,
+                      name: item.name,
+                      price: item.price,
+                      imageUrl: item.imageUrl,
+                      heroTag: 'menu-${item.id}',
+                      description: item.description,
+                      isAvailable: item.isAvailable,
+                    ),
+                  ),
+                ),
+                child: FoodCard(item: item, width: cardWidth),
+              );
+            },
           ),
         ),
       ),

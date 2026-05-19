@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:restaurant/config/constants/api_constants.dart';
+import 'package:restaurant/core/utils/helpers.dart';
 import 'package:restaurant/features/customer/search/presentation/pages/customer_search_page.dart';
 import 'package:restaurant/features/customer/cart/presentation/providers/customer_cart_provider.dart';
 import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
@@ -78,9 +79,7 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
   void _openSearchPage() {
     final q = _query.trim();
     if (q.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Type menu first to search')),
-      );
+      AppHelpers.showSnackBar(context, 'Type menu first to search', isError: true);
       return;
     }
     final payload = _items

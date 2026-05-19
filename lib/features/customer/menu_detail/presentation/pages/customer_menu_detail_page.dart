@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/config/constants/api_constants.dart';
 import 'package:restaurant/core/utils/currency_formatter.dart';
+import 'package:restaurant/core/utils/helpers.dart';
 import 'package:restaurant/features/customer/cart/presentation/providers/customer_cart_provider.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
@@ -76,9 +77,7 @@ class _CustomerMenuDetailPageState
     );
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Added to cart')),
-    );
+    AppHelpers.showSnackBar(context, 'Added to cart');
   }
 
   @override

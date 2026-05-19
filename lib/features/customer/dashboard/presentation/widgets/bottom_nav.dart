@@ -75,30 +75,34 @@ class BottomNavIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
+    return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: active
-              ? const [
-                  BoxShadow(
-                    color: Color(0x44FF4D06),
-                    blurRadius: 16,
-                    blurStyle: BlurStyle.normal,
-                    offset: Offset(0, 4),
-                  ),
-                ]
-              : const [],
-        ),
-        child: Icon(
-          icon,
-          color: active ? const Color(0xFFFF4D06) : const Color(0xFFA8A8A8),
-          size: 26,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 200),
+        scale: active ? 1.15 : 1.0,
+        curve: Curves.easeOutBack,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFF4D06).withValues(alpha: 0.2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Icon(
+            icon,
+            color: active ? const Color(0xFFFF4D06) : const Color(0xFFA8A8A8),
+            size: 26,
+          ),
         ),
       ),
     );
