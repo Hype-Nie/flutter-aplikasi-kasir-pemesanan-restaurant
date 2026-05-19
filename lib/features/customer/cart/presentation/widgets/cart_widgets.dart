@@ -48,35 +48,43 @@ class CartItemTile extends StatelessWidget {
           ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 70,
-              height: 70,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
+              width: 75,
+              height: 75,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black12,
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: ClipOval(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
                 child: item.menuImageUrl.isNotEmpty
                     ? Image.network(
                         item.menuImageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, _, _) => Container(
+                          color: const Color(0xFFF5F5F8),
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            size: 28,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: const Color(0xFFF5F5F8),
+                        child: const Icon(
                           Icons.broken_image_outlined,
                           size: 28,
                           color: Colors.grey,
                         ),
-                      )
-                    : const Icon(
-                        Icons.broken_image_outlined,
-                        size: 28,
-                        color: Colors.grey,
                       ),
               ),
             ),
@@ -93,43 +101,91 @@ class CartItemTile extends StatelessWidget {
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     formatCurrency(item.unitPrice),
                     style: const TextStyle(
-                      color: Color(0xFFFF460A),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Subtotal: ${formatCurrency(item.subtotal)}',
-                    style: const TextStyle(
-                      color: Colors.black45,
-                      fontSize: 12,
+                      color: Colors.black54,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   if (item.addons.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 8),
                     ...item.addons.map(
-                      (a) => Text(
-                        '+ ${a.addonName} (${formatCurrency(a.addonPrice)})',
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 11,
+                      (a) => Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '• ${a.addonName}',
+                                style: const TextStyle(
+                                  color: Colors.black45,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '+${formatCurrency(a.addonPrice)}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Subtotal',
+                              style: TextStyle(
+                                color: Colors.black38,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              formatCurrency(item.subtotal),
+                              style: TextStyle(
+                                color: accent,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                        QtyControl(
+                          qty: item.quantity,
+                          accent: accent,
+                          onDec: onDec,
+                          onInc: onInc,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-            QtyControl(
-              qty: item.quantity,
-              accent: accent,
-              onDec: onDec,
-              onInc: onInc,
             ),
           ],
         ),
@@ -154,23 +210,32 @@ class QtyControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 24,
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
         color: accent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _Btn(label: '-', onTap: onDec),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+          Container(
+            constraints: const BoxConstraints(minWidth: 20),
+            alignment: Alignment.center,
             child: Text(
               '$qty',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
+                fontSize: 13,
               ),
             ),
           ),
@@ -190,14 +255,14 @@ class _Btn extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        color: Colors.transparent,
         child: Text(
           label,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
