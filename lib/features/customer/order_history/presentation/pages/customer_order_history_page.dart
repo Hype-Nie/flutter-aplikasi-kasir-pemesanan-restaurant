@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/features/customer/dashboard/presentation/pages/customer_dashboard_page.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 import 'package:restaurant/shared/widgets/tappable_card.dart';
 
@@ -155,7 +156,10 @@ class _CustomerOrderHistoryPageState
               width: double.infinity,
               height: 64,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CustomerDashboardPage()),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _accent,
                   shape: RoundedRectangleBorder(
