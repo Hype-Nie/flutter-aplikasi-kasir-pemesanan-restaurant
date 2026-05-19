@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:restaurant/features/cashier/order_history/presentation/pages/cashier_order_history_detail_page.dart';
 import '../riverpod/cashier_incoming_order_management_provider.dart';
 import '../widgets/order_card.dart';
 
@@ -166,6 +167,16 @@ class _CashierIncomingOrderManagementView extends StatelessWidget {
                               ),
                               formattedTime: _formatTime(orders[i].createdAt),
                               accent: _accent,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        CashierOrderHistoryDetailPage(
+                                          order: orders[i],
+                                        ),
+                                  ),
+                                );
+                              },
                               onAccept: () => onAccept(orders[i].id),
                               onReject: () => onReject(orders[i].id),
                             ),

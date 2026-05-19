@@ -1,3 +1,5 @@
+import com.android.build.gradle.LibraryExtension
+
 allprojects {
     repositories {
         google()
@@ -17,6 +19,16 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+subprojects {
+    if (name == "printing") {
+        plugins.withId("com.android.library") {
+            extensions.configure<LibraryExtension> {
+                compileSdk = 35
+            }
+        }
+    }
 }
 
 tasks.register<Delete>("clean") {

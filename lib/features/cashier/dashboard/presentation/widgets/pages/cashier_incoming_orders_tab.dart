@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:restaurant/features/cashier/order_history/presentation/pages/cashier_order_history_detail_page.dart';
 import 'package:restaurant/shared/models/order.dart';
 import '../../riverpod/cashier_dashboard_provider.dart';
 
@@ -121,6 +122,13 @@ class _CashierIncomingOrdersTabState
             ...pendingOrders.map(
               (order) => _IncomingOrderCard(
                 order: order,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CashierOrderHistoryDetailPage(order: order),
+                    ),
+                  );
+                },
                 onAccept: () async {
                   final success = await ref
                       .read(cashierDashboardProvider.notifier)
@@ -178,11 +186,13 @@ class _CashierIncomingOrdersTabState
 class _IncomingOrderCard extends StatefulWidget {
   const _IncomingOrderCard({
     required this.order,
+    required this.onTap,
     required this.onAccept,
     required this.onDecline,
   });
 
   final Order order;
+  final VoidCallback onTap;
   final Future<void> Function() onAccept;
   final Future<void> Function() onDecline;
 
@@ -209,23 +219,26 @@ class _IncomingOrderCardState extends State<_IncomingOrderCard> {
   Widget build(BuildContext context) {
     final isDineIn = widget.order.orderType == 'dine_in';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return InkWell(
+      onTap: widget.onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header row
           Row(
             children: [
@@ -290,6 +303,18 @@ class _IncomingOrderCardState extends State<_IncomingOrderCard> {
           ),
           const SizedBox(height: 12),
           Container(height: 1, color: const Color(0xFFF0F0F0)),
+          const SizedBox(height: 12),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _InfoPill(label: widget.order.paymentMethod.replaceAll('_', ' ')),
+              _InfoPill(label: widget.order.deliveryMethod.replaceAll('_', ' ')),
+              if ((widget.order.tableNumber ?? '').isNotEmpty)
+                _InfoPill(label: widget.order.tableNumber!),
+            ],
+          ),
           const SizedBox(height: 12),
 
           // Total
@@ -366,7 +391,45 @@ class _IncomingOrderCardState extends State<_IncomingOrderCard> {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Tap for detail',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8B8B8B),
+              ),
+            ),
+          ),
         ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F3F3),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF6B6B6B),
+        ),
       ),
     );
   }
