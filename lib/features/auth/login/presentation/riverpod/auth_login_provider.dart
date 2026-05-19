@@ -137,6 +137,4 @@ class AuthLoginNotifier extends Notifier<AuthLoginState> {
 final authLoginProvider = NotifierProvider<AuthLoginNotifier, AuthLoginState>(
   AuthLoginNotifier.new,
 );
-final authLoginProvider = NotifierProvider<AuthLoginNotifier, AuthLoginState>(
-  AuthLoginNotifier.new,
-);
+
