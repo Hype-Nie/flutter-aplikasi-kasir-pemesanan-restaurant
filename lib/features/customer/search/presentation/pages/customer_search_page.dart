@@ -119,7 +119,7 @@ class _CustomerSearchPageState extends State<CustomerSearchPage> {
                 Expanded(
                   child: Column(
                     children: [
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 50),
                       ...rightItems.map(
                         (e) => SearchCard(item: e, isRight: true),
                       ),

@@ -61,7 +61,7 @@ class ProductCarousel extends StatelessWidget {
             itemCount: renderItems.length,
             options: CarouselOptions(
               height: metrics.totalHeight,
-              viewportFraction: 0.6,
+              viewportFraction: 0.7,
               enlargeCenterPage: true,
               enableInfiniteScroll: false,
               onPageChanged: (index, reason) => onVisibleIndexChanged(index),
@@ -106,37 +106,39 @@ class FoodCard extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: const [
+                borderRadius: BorderRadius.circular(35),
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x11000000),
-                    blurRadius: 18,
-                    offset: Offset(0, 9),
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     item.name,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: metrics.nameFont,
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                      height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     formatCurrency(item.price),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: metrics.priceFont,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: accent,
                     ),
                   ),
@@ -151,13 +153,13 @@ class FoodCard extends StatelessWidget {
               child: Container(
                 width: metrics.imageSize,
                 height: metrics.imageSize,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x22000000),
-                      blurRadius: 20,
-                      offset: Offset(0, 10),
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 25,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),

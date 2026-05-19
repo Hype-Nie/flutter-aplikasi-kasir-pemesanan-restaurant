@@ -33,13 +33,13 @@ class SearchCard extends StatelessWidget {
         ),
       ),
       child: Container(
-        margin: EdgeInsets.only(bottom: 50, top: isRight ? 40 : 0),
+        margin: const EdgeInsets.only(bottom: 60),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(16, 90, 16, 20),
+              padding: const EdgeInsets.fromLTRB(16, 100, 16, 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
@@ -52,6 +52,7 @@ class SearchCard extends StatelessWidget {
                 ],
               ),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     item['name'] ?? '',
@@ -59,13 +60,13 @@ class SearchCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      height: 1.1,
+                      height: 1.2,
                       color: Colors.black,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
                     formatCurrency(item['price'] ?? '0'),
                     style: const TextStyle(
@@ -78,22 +79,22 @@ class SearchCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: -30,
+              top: -40,
               left: 0,
               right: 0,
               child: Center(
                 child: Hero(
                   tag: 'search-${item['id']}',
                   child: Container(
-                    width: 110,
-                    height: 110,
-                    decoration: const BoxDecoration(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 15,
-                          offset: Offset(0, 8),
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),

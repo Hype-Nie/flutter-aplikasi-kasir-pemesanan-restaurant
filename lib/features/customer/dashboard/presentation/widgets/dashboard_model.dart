@@ -38,18 +38,18 @@ class MenuCardMetrics {
   });
 
   factory MenuCardMetrics.fromWidth(double width) {
-    final imageSize = (width * 0.56).clamp(108.0, 156.0);
-    final bodyTop = imageSize * 0.44;
-    final bodyHeight = (width * 0.86).clamp(188.0, 236.0);
-    final totalHeight = bodyTop + bodyHeight + 8;
+    final imageSize = (width * 0.58).clamp(115.0, 165.0);
+    final bodyTop = imageSize * 0.40;
+    final bodyHeight = (width * 0.95).clamp(200.0, 260.0);
+    final totalHeight = bodyTop + bodyHeight + 10;
     return MenuCardMetrics(
       imageSize: imageSize,
       bodyTop: bodyTop,
       bodyHeight: bodyHeight,
-      contentTopPadding: imageSize * 0.60,
+      contentTopPadding: imageSize * 0.65,
       totalHeight: totalHeight,
-      nameFont: (width * 0.072).clamp(14.0, 18.0),
-      priceFont: (width * 0.12).clamp(24.0, 32.0),
+      nameFont: (width * 0.08).clamp(16.0, 20.0),
+      priceFont: (width * 0.09).clamp(17.0, 22.0),
     );
   }
 }
