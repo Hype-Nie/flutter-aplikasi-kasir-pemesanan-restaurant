@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/config/strings/auth_strings.dart';
 import 'package:restaurant/core/network/dio_client.dart';
+import 'package:restaurant/core/utils/fcm_service.dart';
 import 'package:restaurant/core/utils/token_storage.dart';
 import 'package:restaurant/features/auth/domain/entities/user.dart';
 
@@ -39,18 +41,39 @@ class AuthLoginNotifier extends Notifier<AuthLoginState> {
 
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthLoginStatus.loading, message: '');
+    var hasDeviceToken = false;
 
     try {
+      final deviceToken = await FcmService.getToken();
+      final appVersion = await FcmService.getAppVersion();
+      final deviceType = FcmService.deviceType;
+
+      final payload = <String, dynamic>{
+        'email': email,
+        'password': password,
+        'device_type': deviceType,
+        'app_version': appVersion,
+      };
+      if (deviceToken != null && deviceToken.isNotEmpty) {
+        payload['device_token'] = deviceToken;
+        hasDeviceToken = true;
+        debugPrint(
+          '[AuthLogin] device_token attached: ${_maskToken(deviceToken)}',
+        );
+      } else {
+        debugPrint('[AuthLogin] device_token missing/empty, skipped');
+      }
+      debugPrint(
+        '[AuthLogin] sending login request | has_device_token=${payload.containsKey('device_token')}',
+      );
+
       final response = await DioClient.instance.post(
         '/api/auth/login',
         options: Options(contentType: Headers.formUrlEncodedContentType),
-        data: {
-          'email': email,
-          'password': password,
-          'device_token': 'fcm_token_here',
-          'device_type': 'android',
-          'app_version': '1.0.0',
-        },
+        data: payload,
+      );
+      debugPrint(
+        '[AuthLogin] login response received | status=${response.statusCode} | has_device_token=${payload.containsKey('device_token')}',
       );
 
       final data = response.data as Map<String, dynamic>;
@@ -68,6 +91,9 @@ class AuthLoginNotifier extends Notifier<AuthLoginState> {
         user: user,
       );
     } on DioException catch (e) {
+      debugPrint(
+        '[AuthLogin] login failed | status=${e.response?.statusCode} | has_device_token=$hasDeviceToken',
+      );
       final msg = _mapError(e);
       state = state.copyWith(status: AuthLoginStatus.failure, message: msg);
     } catch (_) {
@@ -79,6 +105,11 @@ class AuthLoginNotifier extends Notifier<AuthLoginState> {
   }
 
   void reset() => state = const AuthLoginState();
+
+  String _maskToken(String token) {
+    if (token.length <= 10) return token;
+    return '${token.substring(0, 8)}...${token.substring(token.length - 6)}';
+  }
 
   String _mapError(DioException e) {
     if (e.type == DioExceptionType.connectionError ||
@@ -106,3 +137,4 @@ class AuthLoginNotifier extends Notifier<AuthLoginState> {
 final authLoginProvider = NotifierProvider<AuthLoginNotifier, AuthLoginState>(
   AuthLoginNotifier.new,
 );
+

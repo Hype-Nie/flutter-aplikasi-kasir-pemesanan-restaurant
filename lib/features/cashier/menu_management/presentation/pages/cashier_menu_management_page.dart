@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:restaurant/config/strings/cashier_strings.dart';
+import 'package:restaurant/shared/models/addon.dart';
 import 'package:restaurant/shared/models/menu.dart';
 import '../riverpod/cashier_menu_management_provider.dart';
 import '../widgets/menu_card.dart';
@@ -65,6 +64,7 @@ class _CashierMenuManagementPageState
             required String name,
             required int price,
             required bool isAvailable,
+            required List<int> addonIds,
             String? description,
             XFile? imageFile,
           }) => ref
@@ -74,6 +74,7 @@ class _CashierMenuManagementPageState
                 name: name,
                 price: price,
                 isAvailable: isAvailable,
+                addonIds: addonIds,
                 description: description,
                 imageFile: imageFile,
               ),
@@ -86,6 +87,7 @@ class _CashierMenuManagementPageState
             String? name,
             int? categoryId,
             bool? isAvailable,
+            List<int>? addonIds,
           }) => ref
               .read(cashierMenuManagementProvider.notifier)
               .updateMenu(
@@ -96,6 +98,7 @@ class _CashierMenuManagementPageState
                 name: name,
                 categoryId: categoryId,
                 isAvailable: isAvailable,
+                addonIds: addonIds,
               ),
       onDelete: (int id) =>
           ref.read(cashierMenuManagementProvider.notifier).deleteMenu(id),
@@ -119,6 +122,7 @@ class _CashierMenuManagementView extends StatefulWidget {
     required String name,
     required int price,
     required bool isAvailable,
+    required List<int> addonIds,
     String? description,
     XFile? imageFile,
   })
@@ -131,6 +135,7 @@ class _CashierMenuManagementView extends StatefulWidget {
     String? name,
     int? categoryId,
     bool? isAvailable,
+    List<int>? addonIds,
   })
   onUpdate;
   final Future<bool> Function(int id) onDelete;
@@ -191,6 +196,53 @@ class _CashierMenuManagementViewState
 
   String _formatPrice(double price) {
     return 'Rp ${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+  }
+
+  Widget _buildAddonSelector({
+    required List<Addon> addons,
+    required Set<int> selectedAddonIds,
+    required void Function(int addonId, bool selected) onSelected,
+  }) {
+    if (addons.isEmpty) {
+      return const Text(
+        'No addons available',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF8B8B8B),
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: addons.map((addon) {
+        final selected = selectedAddonIds.contains(addon.id);
+        final disabled = !addon.isAvailable;
+        final labelColor = disabled
+            ? const Color(0xFFB0B0B0)
+            : (selected ? _accent : const Color(0xFF121212));
+
+        return FilterChip(
+          label: Text(
+            '${addon.name} • ${_formatPrice(addon.price)}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: labelColor,
+            ),
+          ),
+          selected: selected,
+          onSelected: disabled ? null : (value) => onSelected(addon.id, value),
+          selectedColor: _accent.withValues(alpha: 0.12),
+          backgroundColor: const Color(0xFFF5F5F5),
+          checkmarkColor: _accent,
+          side: BorderSide(color: selected ? _accent : const Color(0xFFDADADA)),
+          showCheckmark: !disabled,
+        );
+      }).toList(),
+    );
   }
 
   Future<XFile?> _pickImage(ImageSource source) async {
@@ -449,6 +501,8 @@ class _CashierMenuManagementViewState
     int? selectedCategoryId;
     bool isAvailable = true;
     bool isLoading = false;
+    final addons = widget.state.addons;
+    final selectedAddonIds = <int>{};
 
     showModalBottomSheet(
       context: context,
@@ -530,7 +584,10 @@ class _CashierMenuManagementViewState
 
                   MenuSheetTextField(label: 'Menu Name', controller: nameCtrl),
                   const SizedBox(height: 12),
-                  MenuSheetTextField(label: 'Description', controller: descCtrl),
+                  MenuSheetTextField(
+                    label: 'Description',
+                    controller: descCtrl,
+                  ),
                   const SizedBox(height: 12),
                   MenuSheetTextField(
                     label: 'Price',
@@ -553,6 +610,33 @@ class _CashierMenuManagementViewState
                     onClearImage: selectedImageFile == null
                         ? null
                         : () => setSheetState(() => selectedImageFile = null),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Addons (optional)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87.withValues(alpha: 0.80),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildAddonSelector(
+                    addons: addons,
+                    selectedAddonIds: selectedAddonIds,
+                    onSelected: (addonId, selected) {
+                      setSheetState(() {
+                        if (selected) {
+                          selectedAddonIds.add(addonId);
+                        } else {
+                          selectedAddonIds.remove(addonId);
+                        }
+                      });
+                    },
                   ),
                   const SizedBox(height: 12),
 
@@ -591,8 +675,7 @@ class _CashierMenuManagementViewState
                                   selectedCategoryId == null) {
                                 return;
                               }
-                              final price =
-                                  int.tryParse(priceCtrl.text.trim());
+                              final price = int.tryParse(priceCtrl.text.trim());
                               if (price == null) return;
                               setSheetState(() => isLoading = true);
                               final success = await widget.onCreate(
@@ -600,6 +683,7 @@ class _CashierMenuManagementViewState
                                 name: nameCtrl.text.trim(),
                                 price: price,
                                 isAvailable: isAvailable,
+                                addonIds: selectedAddonIds.toList(),
                                 description: descCtrl.text.trim(),
                                 imageFile: selectedImageFile,
                               );
@@ -612,8 +696,9 @@ class _CashierMenuManagementViewState
                         elevation: 0,
                         backgroundColor: _accent,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            _accent.withValues(alpha: 0.50),
+                        disabledBackgroundColor: _accent.withValues(
+                          alpha: 0.50,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22),
                         ),
@@ -652,7 +737,15 @@ class _CashierMenuManagementViewState
     );
     final descCtrl = TextEditingController(text: menu.description ?? '');
     XFile? selectedImageFile;
+    bool isAvailable = menu.isAvailable;
     bool isLoading = false;
+    final categories = widget.state.categories;
+    int? selectedCategoryId = menu.categoryId;
+    final addons = widget.state.addons;
+    final selectedAddonIds = widget.state.menuAddons
+        .where((item) => item.menuId == menu.id)
+        .map((item) => item.addonId)
+        .toSet();
 
     showModalBottomSheet(
       context: context,
@@ -699,10 +792,53 @@ class _CashierMenuManagementViewState
                       color: Color(0xFF8B8B8B),
                     ),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 16),
+
+                  // Category dropdown
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: categories.isEmpty ? null : selectedCategoryId,
+                        hint: const Text(
+                          'Select Category',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF8B8B8B),
+                          ),
+                        ),
+                        isExpanded: true,
+                        items: categories.map((cat) {
+                          return DropdownMenuItem<int>(
+                            value: cat.id,
+                            child: Text(
+                              cat.name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setSheetState(() => selectedCategoryId = value);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   MenuSheetTextField(label: 'Name', controller: nameCtrl),
                   const SizedBox(height: 12),
-                  MenuSheetTextField(label: 'Description', controller: descCtrl),
+                  MenuSheetTextField(
+                    label: 'Description',
+                    controller: descCtrl,
+                  ),
                   const SizedBox(height: 12),
                   MenuSheetTextField(
                     label: 'Price',
@@ -727,7 +863,54 @@ class _CashierMenuManagementViewState
                         ? null
                         : () => setSheetState(() => selectedImageFile = null),
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Addons (optional)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87.withValues(alpha: 0.80),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildAddonSelector(
+                    addons: addons,
+                    selectedAddonIds: selectedAddonIds,
+                    onSelected: (addonId, selected) {
+                      setSheetState(() {
+                        if (selected) {
+                          selectedAddonIds.add(addonId);
+                        } else {
+                          selectedAddonIds.remove(addonId);
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Text(
+                        'Available',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF121212),
+                        ),
+                      ),
+                      const Spacer(),
+                      Switch(
+                        value: isAvailable,
+                        activeColor: _accent,
+                        onChanged: (v) {
+                          setSheetState(() => isAvailable = v);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       // Update button
@@ -738,8 +921,9 @@ class _CashierMenuManagementViewState
                             onPressed: isLoading
                                 ? null
                                 : () async {
-                                    final price =
-                                        int.tryParse(priceCtrl.text.trim());
+                                    final price = int.tryParse(
+                                      priceCtrl.text.trim(),
+                                    );
                                     if (price == null) return;
                                     setSheetState(() => isLoading = true);
                                     final success = await widget.onUpdate(
@@ -748,6 +932,9 @@ class _CashierMenuManagementViewState
                                       price: price,
                                       description: descCtrl.text.trim(),
                                       imageFile: selectedImageFile,
+                                      isAvailable: isAvailable,
+                                      categoryId: selectedCategoryId,
+                                      addonIds: selectedAddonIds.toList(),
                                     );
                                     if (ctx.mounted) {
                                       setSheetState(() => isLoading = false);
@@ -758,8 +945,9 @@ class _CashierMenuManagementViewState
                               elevation: 0,
                               backgroundColor: _accent,
                               foregroundColor: Colors.white,
-                              disabledBackgroundColor:
-                                  _accent.withValues(alpha: 0.50),
+                              disabledBackgroundColor: _accent.withValues(
+                                alpha: 0.50,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(22),
                               ),
@@ -855,4 +1043,3 @@ class _CashierMenuManagementViewState
     );
   }
 }
-

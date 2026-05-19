@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:restaurant/features/cashier/order_history/presentation/pages/cashier_order_history_detail_page.dart';
 import 'package:restaurant/shared/models/order.dart';
 import '../../riverpod/cashier_dashboard_provider.dart';
 
@@ -150,6 +151,13 @@ class CashierOrderStatusTab extends ConsumerWidget {
                 statusColor: sc,
                 formattedPrice: _formatPrice(order.totalAmount),
                 nextLabel: _nextLabel(order.status),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CashierOrderHistoryDetailPage(order: order),
+                    ),
+                  );
+                },
                 onAdvance: () async {
                   final success = await ref
                       .read(cashierDashboardProvider.notifier)
@@ -261,6 +269,7 @@ class _OrderStatusCard extends StatefulWidget {
     required this.statusColor,
     required this.formattedPrice,
     required this.nextLabel,
+    required this.onTap,
     required this.onAdvance,
     required this.onCancel,
   });
@@ -269,6 +278,7 @@ class _OrderStatusCard extends StatefulWidget {
   final Color statusColor;
   final String formattedPrice;
   final String nextLabel;
+  final VoidCallback onTap;
   final Future<void> Function() onAdvance;
   final Future<void> Function() onCancel;
 
@@ -298,22 +308,25 @@ class _OrderStatusCardState extends State<_OrderStatusCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
+    return InkWell(
+      onTap: widget.onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
           Row(
             children: [
               Container(
@@ -375,6 +388,21 @@ class _OrderStatusCardState extends State<_OrderStatusCard> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _InfoPill(label: widget.order.paymentMethod.replaceAll('_', ' ')),
+                _InfoPill(label: widget.order.deliveryMethod.replaceAll('_', ' ')),
+                if ((widget.order.tableNumber ?? '').isNotEmpty)
+                  _InfoPill(label: widget.order.tableNumber!),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -447,7 +475,45 @@ class _OrderStatusCardState extends State<_OrderStatusCard> {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Tap for detail',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF8B8B8B),
+              ),
+            ),
+          ),
         ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F3F3),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF6B6B6B),
+        ),
       ),
     );
   }

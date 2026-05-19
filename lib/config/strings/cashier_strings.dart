@@ -31,6 +31,7 @@ class CashierStrings {
   // Menu Addon
   static const menuAddonCreated = 'Addon linked to menu successfully.';
   static const menuAddonDeleted = 'Addon unlinked from menu successfully.';
+  static const menuAddonSyncFailed = 'Menu saved, but failed to update addons.';
 
   // Order
   static const orderStatusUpdated = 'Order status updated successfully.';
