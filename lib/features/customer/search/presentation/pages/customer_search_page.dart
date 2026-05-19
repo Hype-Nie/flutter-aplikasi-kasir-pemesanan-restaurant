@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:restaurant/features/customer/search/presentation/widgets/search_card.dart';
 
 class CustomerSearchPage extends StatefulWidget {
@@ -63,6 +64,7 @@ class _CustomerSearchPageState extends State<CustomerSearchPage> {
       backgroundColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
       leading: IconButton(
         icon: const Icon(
           Icons.arrow_back_ios_new,

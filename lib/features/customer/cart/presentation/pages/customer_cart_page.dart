@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
@@ -34,6 +35,7 @@ class _CustomerCartPageState extends ConsumerState<CustomerCartPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,

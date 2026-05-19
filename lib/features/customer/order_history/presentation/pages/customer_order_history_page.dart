@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
+import 'package:restaurant/shared/widgets/tappable_card.dart';
 
 import '../providers/customer_order_history_provider.dart';
 import '../widgets/order_widgets.dart';
@@ -36,6 +38,7 @@ class _CustomerOrderHistoryPageState
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,
@@ -65,14 +68,17 @@ class _CustomerOrderHistoryPageState
       padding: const EdgeInsets.all(24),
       itemCount: state.orders.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (context, i) => OrderCard(
-        order: state.orders[i],
+      itemBuilder: (context, i) => TappableCard(
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) =>
                 CustomerOrderHistoryDetailPage(order: state.orders[i]),
           ),
+        ),
+        child: OrderCard(
+          order: state.orders[i],
+          onTap: () {}, // Handled by TappableCard
         ),
       ),
     );

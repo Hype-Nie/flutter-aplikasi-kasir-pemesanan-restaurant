@@ -153,6 +153,7 @@ class _CustomerChangeProfilePageState
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
       leading: IconButton(
         icon: const Icon(
           Icons.arrow_back_ios_new,

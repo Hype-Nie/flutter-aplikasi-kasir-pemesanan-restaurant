@@ -3,6 +3,7 @@ import 'package:restaurant/core/utils/helpers.dart';
 import 'package:restaurant/features/auth/logout/presentation/pages/auth_logout_page.dart';
 import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
 import 'package:restaurant/features/customer/profile/presentation/pages/customer_profile_page.dart';
+import 'package:restaurant/features/customer/profile/presentation/pages/customer_privacy_policy_page.dart';
 import 'package:restaurant/shared/pages/no_internet_page.dart';
 
 import '../pages/customer_offers_page.dart';
@@ -46,6 +47,7 @@ class SideDrawer extends StatelessWidget {
               DrawerAction(
                 title: 'Privacy policy',
                 icon: Icons.chat_bubble_outline_rounded,
+                onTap: () => _push(context, const CustomerPrivacyPolicyPage()),
               ),
               DrawerAction(
                 title: 'Security',

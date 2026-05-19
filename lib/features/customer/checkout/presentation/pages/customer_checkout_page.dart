@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/core/utils/currency_formatter.dart';
 import 'package:restaurant/features/customer/cart/presentation/providers/customer_cart_provider.dart';
@@ -22,6 +23,7 @@ class _CustomerCheckoutPageState extends ConsumerState<CustomerCheckoutPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,

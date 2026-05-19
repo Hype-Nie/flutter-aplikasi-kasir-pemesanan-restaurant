@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:restaurant/config/constants/api_constants.dart';
 import 'package:restaurant/core/utils/currency_formatter.dart';
@@ -88,51 +89,70 @@ class _CustomerMenuDetailPageState
     final width = MediaQuery.sizeOf(context).width;
     final imageSize = (width * 0.48).clamp(150.0, 210.0);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F8),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: MenuDetailImageSection(
-                        imageUrl: widget.imageUrl,
-                        heroTag: widget.heroTag,
-                        imageSize: imageSize,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F8),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: MenuDetailImageSection(
+                          imageUrl: widget.imageUrl,
+                          heroTag: widget.heroTag,
+                          imageSize: imageSize,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 26),
-                    Center(
-                      child: Text(widget.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700)),
-                    ),
-                    const SizedBox(height: 8),
-                    Center(child: Text(formatCurrency(widget.price), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: accent))),
-                    const SizedBox(height: 32),
-                    _buildDescription(),
-                    const SizedBox(height: 24),
-                    MenuDetailAddonsSection(
-                      state: state,
-                      selectedAddonIds: _selectedAddonIds,
-                      accent: accent,
-                      onToggleAddon: _toggleAddon,
-                    ),
-                    const SizedBox(height: 100),
-                  ],
+                      const SizedBox(height: 26),
+                      Center(
+                        child: Text(
+                          widget.name,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          formatCurrency(widget.price),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: accent,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      _buildDescription(),
+                      const SizedBox(height: 24),
+                      MenuDetailAddonsSection(
+                        state: state,
+                        selectedAddonIds: _selectedAddonIds,
+                        accent: accent,
+                        onToggleAddon: _toggleAddon,
+                      ),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _AddToCartButton(
-              accent: accent,
-              isAvailable: widget.isAvailable,
-              onTap: _onAddToCart,
-            ),
-          ],
+              _AddToCartButton(
+                accent: accent,
+                isAvailable: widget.isAvailable,
+                onTap: _onAddToCart,
+              ),
+            ],
+          ),
         ),
       ),
     );
