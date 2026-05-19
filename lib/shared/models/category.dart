@@ -33,15 +33,21 @@ class Category extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-        'icon': icon,
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'description': description,
+    'icon': icon,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 
   @override
-  List<Object?> get props =>
-      [id, name, description, icon, createdAt, updatedAt];
+  List<Object?> get props => [
+    id,
+    name,
+    description,
+    icon,
+    createdAt,
+    updatedAt,
+  ];
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CustomerOffersPage extends StatelessWidget {
   const CustomerOffersPage({super.key});
@@ -10,6 +11,7 @@ class CustomerOffersPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,

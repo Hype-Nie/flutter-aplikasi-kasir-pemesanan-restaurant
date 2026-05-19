@@ -36,13 +36,13 @@ class _MenuDetailImageSectionState extends State<MenuDetailImageSection> {
         child: Container(
           width: widget.imageSize,
           height: widget.imageSize,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black12,
-                blurRadius: 10,
-                offset: Offset(0, 5),
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
             ],
           ),
@@ -67,7 +67,7 @@ class _MenuDetailImageSectionState extends State<MenuDetailImageSection> {
         CarouselSlider.builder(
           itemCount: _images.length,
           options: CarouselOptions(
-            height: widget.imageSize,
+            height: widget.imageSize + 60,
             viewportFraction: 1,
             enableInfiniteScroll: false,
             onPageChanged: (index, reason) =>
@@ -75,15 +75,16 @@ class _MenuDetailImageSectionState extends State<MenuDetailImageSection> {
           ),
           itemBuilder: (context, index, realIndex) {
             final image = Container(
-              width: widget.imageSize,
-              height: widget.imageSize,
-              decoration: const BoxDecoration(
+              width: widget.imageSize * 1.2,
+              height: widget.imageSize * 1.2,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, 5),
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 30,
+                    offset: const Offset(0, 15),
                   ),
                 ],
               ),
@@ -115,7 +116,6 @@ class _MenuDetailImageSectionState extends State<MenuDetailImageSection> {
           },
         ),
         if (_images.isNotEmpty) ...[
-          const SizedBox(height: 14),
           Center(
             child: _IndicatorDots(active: _activeSlide, count: _images.length),
           ),

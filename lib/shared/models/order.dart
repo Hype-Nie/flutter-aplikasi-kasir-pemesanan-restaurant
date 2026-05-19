@@ -46,8 +46,8 @@ class Order extends Equatable {
       notes: json['notes']?.toString(),
       items: json['order_items'] != null
           ? (json['order_items'] as List<dynamic>)
-              .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
-              .toList()
+                .map((e) => OrderItem.fromJson(e as Map<String, dynamic>))
+                .toList()
           : const [],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)

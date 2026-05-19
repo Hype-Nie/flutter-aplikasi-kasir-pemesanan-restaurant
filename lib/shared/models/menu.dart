@@ -45,16 +45,16 @@ class Menu extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'category_id': categoryId,
-        'name': name,
-        'description': description,
-        'price': price,
-        'image': image,
-        'is_available': isAvailable,
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'category_id': categoryId,
+    'name': name,
+    'description': description,
+    'price': price,
+    'image': image,
+    'is_available': isAvailable,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 
   String? get imageUrl {
     final raw = image?.trim();
@@ -62,7 +62,9 @@ class Menu extends Equatable {
     if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
 
     final baseUrl = EnvConfig.baseUrl.trim().replaceFirst(RegExp(r'/$'), '');
-    final normalized = raw.replaceAll('\\', '/').replaceFirst(RegExp(r'^/+'), '');
+    final normalized = raw
+        .replaceAll('\\', '/')
+        .replaceFirst(RegExp(r'^/+'), '');
     final lowered = normalized.toLowerCase();
 
     String path;
@@ -82,14 +84,14 @@ class Menu extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        categoryId,
-        name,
-        description,
-        price,
-        image,
-        isAvailable,
-        createdAt,
-        updatedAt,
-      ];
+    id,
+    categoryId,
+    name,
+    description,
+    price,
+    image,
+    isAvailable,
+    createdAt,
+    updatedAt,
+  ];
 }

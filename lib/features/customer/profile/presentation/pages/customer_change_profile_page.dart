@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/core/utils/helpers.dart';
 import 'package:restaurant/features/customer/profile/presentation/providers/customer_profile_provider.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/avatar_picker.dart';
-import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 
 class CustomerChangeProfilePage extends ConsumerStatefulWidget {
   const CustomerChangeProfilePage({super.key});
@@ -61,15 +61,11 @@ class _CustomerChangeProfilePageState
     final address = _addressCtrl.text.trim();
 
     if (name.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Name is required.')));
+      AppHelpers.showSnackBar(context, 'Name is required.', isError: true);
       return;
     }
     if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Valid email is required.')));
+      AppHelpers.showSnackBar(context, 'Valid email is required.', isError: true);
       return;
     }
 
@@ -90,21 +86,18 @@ class _CustomerChangeProfilePageState
       Navigator.pop(context);
     } else {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            newState.message.isNotEmpty
-                ? newState.message
-                : 'Failed to update profile.',
-          ),
-        ),
+      AppHelpers.showSnackBar(
+        context,
+        newState.message.isNotEmpty
+            ? newState.message
+            : 'Failed to update profile.',
+        isError: true,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFFFF460A);
     final state = ref.watch(customerProfileProvider);
 
     if (state.status == CustomerProfileStatus.success &&
@@ -160,6 +153,7 @@ class _CustomerChangeProfilePageState
     return AppBar(
       backgroundColor: Colors.transparent,
       elevation: 0,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
       leading: IconButton(
         icon: const Icon(
           Icons.arrow_back_ios_new,
@@ -185,7 +179,7 @@ class _CustomerChangeProfilePageState
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

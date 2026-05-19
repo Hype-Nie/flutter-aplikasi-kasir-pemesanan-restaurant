@@ -2,6 +2,8 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:restaurant/core/utils/currency_formatter.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
+import 'package:restaurant/features/customer/menu_detail/presentation/pages/customer_menu_detail_page.dart';
+import 'package:restaurant/shared/widgets/tappable_card.dart';
 
 import 'dashboard_model.dart';
 import 'dashboard_placeholder.dart';
@@ -61,13 +63,30 @@ class ProductCarousel extends StatelessWidget {
             itemCount: renderItems.length,
             options: CarouselOptions(
               height: metrics.totalHeight,
-              viewportFraction: 0.6,
+              viewportFraction: 0.7,
               enlargeCenterPage: true,
               enableInfiniteScroll: false,
               onPageChanged: (index, reason) => onVisibleIndexChanged(index),
             ),
-            itemBuilder: (_, index, __) =>
-                FoodCard(item: renderItems[index], width: cardWidth),
+            itemBuilder: (_, index, __) {
+              final item = renderItems[index];
+              return TappableCard(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => CustomerMenuDetailPage(
+                      menuId: item.id,
+                      name: item.name,
+                      price: item.price,
+                      imageUrl: item.imageUrl,
+                      heroTag: 'menu-${item.id}',
+                      description: item.description,
+                      isAvailable: item.isAvailable,
+                    ),
+                  ),
+                ),
+                child: FoodCard(item: item, width: cardWidth),
+              );
+            },
           ),
         ),
       ),
@@ -106,37 +125,39 @@ class FoodCard extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: const [
+                borderRadius: BorderRadius.circular(35),
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x11000000),
-                    blurRadius: 18,
-                    offset: Offset(0, 9),
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     item.name,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: metrics.nameFont,
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                      height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     formatCurrency(item.price),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: metrics.priceFont,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                       color: accent,
                     ),
                   ),
@@ -151,13 +172,13 @@ class FoodCard extends StatelessWidget {
               child: Container(
                 width: metrics.imageSize,
                 height: metrics.imageSize,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x22000000),
-                      blurRadius: 20,
-                      offset: Offset(0, 10),
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 25,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),

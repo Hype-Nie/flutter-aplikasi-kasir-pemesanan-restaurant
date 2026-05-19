@@ -30,12 +30,12 @@ class MenuAddon extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'menu_id': menuId,
-        'addon_id': addonId,
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
+    'id': id,
+    'menu_id': menuId,
+    'addon_id': addonId,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+  };
 
   @override
   List<Object?> get props => [id, menuId, addonId, createdAt, updatedAt];
