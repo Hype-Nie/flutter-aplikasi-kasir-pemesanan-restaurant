@@ -144,22 +144,55 @@ class _CustomerMenuDetailPageState
                         accent: accent,
                         onToggleAddon: _toggleAddon,
                       ),
-                      const SizedBox(height: 20),
-                      _QuantitySelector(
-                        quantity: _quantity,
-                        onDec: _quantity > 1 ? () => setState(() => _quantity--) : null,
-                        onInc: () => setState(() => _quantity++),
-                        accent: accent,
-                      ),
-                      const SizedBox(height: 80),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
               ),
-              _AddToCartButton(
-                accent: accent,
-                isAvailable: widget.isAvailable,
-                onTap: _onAddToCart,
+              Container(
+                padding: const EdgeInsets.only(top: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Quantity',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          _QuantitySelector(
+                            quantity: _quantity,
+                            onDec: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                            onInc: () => setState(() => _quantity++),
+                            accent: accent,
+                          ),
+                        ],
+                      ),
+                    ),
+                    _AddToCartButton(
+                      accent: accent,
+                      isAvailable: widget.isAvailable,
+                      onTap: _onAddToCart,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -232,40 +265,87 @@ class _QuantitySelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          onPressed: onDec,
-          icon: Icon(
-            Icons.remove_circle_outline,
-            size: 32,
-            color: onDec != null ? accent : Colors.grey,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 40,
-          child: Text(
-            '$quantity',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: Colors.black,
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _QuantityButton(
+            icon: Icons.remove,
+            onTap: onDec,
+            color: onDec != null ? Colors.black87 : Colors.grey[300]!,
+            backgroundColor: const Color(0xFFF5F5F8),
+          ),
+          const SizedBox(width: 24),
+          SizedBox(
+            width: 32,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Text(
+                '$quantity',
+                key: ValueKey<int>(quantity),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        IconButton(
-          onPressed: onInc,
-          icon: Icon(
-            Icons.add_circle_outline,
-            size: 32,
-            color: accent,
+          const SizedBox(width: 24),
+          _QuantityButton(
+            icon: Icons.add,
+            onTap: onInc,
+            color: Colors.white,
+            backgroundColor: accent,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuantityButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color color;
+  final Color backgroundColor;
+
+  const _QuantityButton({
+    required this.icon,
+    required this.onTap,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: backgroundColor,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.hardEdge,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, size: 20, color: color),
         ),
-      ],
+      ),
     );
   }
 }
