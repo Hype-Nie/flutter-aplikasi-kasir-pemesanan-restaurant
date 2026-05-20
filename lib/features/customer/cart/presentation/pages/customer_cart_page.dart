@@ -116,12 +116,6 @@ class _CartContent extends ConsumerWidget {
                 onRemove: () => ref
                     .read(customerCartProvider.notifier)
                     .removeFromCart(item.id),
-                onDec: () => ref
-                    .read(customerCartProvider.notifier)
-                    .updateCartQuantity(item.id, item.quantity - 1),
-                onInc: () => ref
-                    .read(customerCartProvider.notifier)
-                    .updateCartQuantity(item.id, item.quantity + 1),
               );
             },
           ),

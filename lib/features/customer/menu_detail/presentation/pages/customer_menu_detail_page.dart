@@ -39,6 +39,7 @@ class CustomerMenuDetailPage extends ConsumerStatefulWidget {
 class _CustomerMenuDetailPageState
     extends ConsumerState<CustomerMenuDetailPage> {
   final List<int> _selectedAddonIds = [];
+  int _quantity = 1;
 
   @override
   void initState() {
@@ -75,7 +76,9 @@ class _CustomerMenuDetailPageState
           : '',
       addonIds: selectedAddons.map((a) => a.addonId).toList(),
       addonNames: selectedAddons.map((a) => a.price).toList(),
+      quantity: _quantity,
     );
+    setState(() => _quantity = 1);
 
     if (!mounted) return;
     AppHelpers.showSnackBar(context, 'Added to cart');
@@ -141,7 +144,14 @@ class _CustomerMenuDetailPageState
                         accent: accent,
                         onToggleAddon: _toggleAddon,
                       ),
-                      const SizedBox(height: 100),
+                      const SizedBox(height: 20),
+                      _QuantitySelector(
+                        quantity: _quantity,
+                        onDec: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                        onInc: () => setState(() => _quantity++),
+                        accent: accent,
+                      ),
+                      const SizedBox(height: 80),
                     ],
                   ),
                 ),
@@ -202,6 +212,59 @@ class _CustomerMenuDetailPageState
               ],
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _QuantitySelector extends StatelessWidget {
+  final int quantity;
+  final VoidCallback? onDec;
+  final VoidCallback onInc;
+  final Color accent;
+
+  const _QuantitySelector({
+    required this.quantity,
+    required this.onDec,
+    required this.onInc,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          onPressed: onDec,
+          icon: Icon(
+            Icons.remove_circle_outline,
+            size: 32,
+            color: onDec != null ? accent : Colors.grey,
+          ),
+        ),
+        const SizedBox(width: 16),
+        SizedBox(
+          width: 40,
+          child: Text(
+            '$quantity',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: Colors.black,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        IconButton(
+          onPressed: onInc,
+          icon: Icon(
+            Icons.add_circle_outline,
+            size: 32,
+            color: accent,
+          ),
+        ),
       ],
     );
   }
