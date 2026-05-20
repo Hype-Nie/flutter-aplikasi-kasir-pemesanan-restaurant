@@ -137,7 +137,7 @@ class ProfileBody extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   child: user.avatar != null && user.avatar!.isNotEmpty
                       ? Image.network(
-                          '${ApiConstants.baseUrl}/assets/avatar_images/${user.avatar}',
+                          '${ApiConstants.baseUrl}/${user.avatar}',
                           width: 90,
                           height: 100,
                           fit: BoxFit.cover,

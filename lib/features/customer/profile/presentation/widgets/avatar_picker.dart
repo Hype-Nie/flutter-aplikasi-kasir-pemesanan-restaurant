@@ -50,7 +50,7 @@ class _AvatarPickerState extends ConsumerState<AvatarPicker> {
                 ? FileImage(File(_localPath!))
                 : effectiveUrl != null && effectiveUrl.isNotEmpty
                 ? NetworkImage(
-                        '${ApiConstants.baseUrl}/assets/avatar_images/$effectiveUrl',
+                        '${ApiConstants.baseUrl}/$effectiveUrl',
                       )
                       as ImageProvider
                 : null,
