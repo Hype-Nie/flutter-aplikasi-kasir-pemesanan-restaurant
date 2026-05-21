@@ -60,6 +60,11 @@ class _CustomerOrderHistoryPageState
       ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
+        color: _accent,
+        backgroundColor: Colors.white,
+        edgeOffset: 20,
+        displacement: 40,
+        strokeWidth: 3,
         child: _buildBody(state),
       ),
     );

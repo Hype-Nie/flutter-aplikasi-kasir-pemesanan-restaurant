@@ -181,6 +181,11 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
                       borderRadius: BorderRadius.circular(_drawerOpen ? 30 : 0),
                       child: RefreshIndicator(
                         onRefresh: _onRefresh,
+                        color: accent,
+                        backgroundColor: Colors.white,
+                        edgeOffset: 20,
+                        displacement: 40,
+                        strokeWidth: 3,
                         child: DashboardHomeContent(
                         bg: bg,
                         accent: accent,

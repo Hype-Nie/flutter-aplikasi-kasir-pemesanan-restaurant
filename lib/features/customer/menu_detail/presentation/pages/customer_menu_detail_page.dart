@@ -109,7 +109,13 @@ class _CustomerMenuDetailPageState
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _onRefresh,
+                  color: accent,
+                  backgroundColor: Colors.white,
+                  edgeOffset: 20,
+                  displacement: 40,
+                  strokeWidth: 3,
                   child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

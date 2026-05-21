@@ -60,6 +60,11 @@ class _CustomerCartPageState extends ConsumerState<CustomerCartPage> {
       ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
+        color: accent,
+        backgroundColor: Colors.white,
+        edgeOffset: 20,
+        displacement: 40,
+        strokeWidth: 3,
         child: switch (state.status) {
           CustomerCartStatus.loading => const ShimmerCartItem(),
           _ when state.items.isEmpty => EmptyCartView(
