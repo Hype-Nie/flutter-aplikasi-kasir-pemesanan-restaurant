@@ -68,10 +68,15 @@ class CustomerDashboardNotifier extends Notifier<CustomerDashboardState> {
     } on DioException catch (e) {
       final data = e.response?.data;
       String msg = 'Failed to load data.';
-      if (data is Map) {
+      
+      if (e.type == DioExceptionType.connectionError && 
+          e.error.toString().contains('No internet connection')) {
+        msg = 'No internet connection';
+      } else if (data is Map) {
         final message = data['message'];
         if (message is String && message.isNotEmpty) msg = message;
       }
+      
       state = state.copyWith(
         status: CustomerDashboardStatus.failure,
         message: msg,

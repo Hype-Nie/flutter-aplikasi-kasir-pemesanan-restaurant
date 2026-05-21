@@ -39,6 +39,7 @@ class CustomerMenuDetailPage extends ConsumerStatefulWidget {
 class _CustomerMenuDetailPageState
     extends ConsumerState<CustomerMenuDetailPage> {
   final List<int> _selectedAddonIds = [];
+  int _quantity = 1;
 
   @override
   void initState() {
@@ -48,6 +49,12 @@ class _CustomerMenuDetailPageState
           .read(customerMenuDetailProvider.notifier)
           .fetchMenuAddons(widget.menuId);
     });
+  }
+
+  Future<void> _onRefresh() async {
+    await ref
+        .read(customerMenuDetailProvider.notifier)
+        .fetchMenuAddons(widget.menuId);
   }
 
   void _toggleAddon(int addonId) {
@@ -75,7 +82,9 @@ class _CustomerMenuDetailPageState
           : '',
       addonIds: selectedAddons.map((a) => a.addonId).toList(),
       addonNames: selectedAddons.map((a) => a.price).toList(),
+      quantity: _quantity,
     );
+    setState(() => _quantity = 1);
 
     if (!mounted) return;
     AppHelpers.showSnackBar(context, 'Added to cart');
@@ -98,9 +107,17 @@ class _CustomerMenuDetailPageState
             children: [
               _buildAppBar(),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  color: accent,
+                  backgroundColor: Colors.white,
+                  edgeOffset: 20,
+                  displacement: 40,
+                  strokeWidth: 3,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
@@ -141,15 +158,56 @@ class _CustomerMenuDetailPageState
                         accent: accent,
                         onToggleAddon: _toggleAddon,
                       ),
-                      const SizedBox(height: 100),
+                      const SizedBox(height: 40),
                     ],
+                    ),
                   ),
                 ),
               ),
-              _AddToCartButton(
-                accent: accent,
-                isAvailable: widget.isAvailable,
-                onTap: _onAddToCart,
+              Container(
+                padding: const EdgeInsets.only(top: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Quantity',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          _QuantitySelector(
+                            quantity: _quantity,
+                            onDec: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                            onInc: () => setState(() => _quantity++),
+                            accent: accent,
+                          ),
+                        ],
+                      ),
+                    ),
+                    _AddToCartButton(
+                      accent: accent,
+                      isAvailable: widget.isAvailable,
+                      onTap: _onAddToCart,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -203,6 +261,106 @@ class _CustomerMenuDetailPageState
             ),
           ),
       ],
+    );
+  }
+}
+
+class _QuantitySelector extends StatelessWidget {
+  final int quantity;
+  final VoidCallback? onDec;
+  final VoidCallback onInc;
+  final Color accent;
+
+  const _QuantitySelector({
+    required this.quantity,
+    required this.onDec,
+    required this.onInc,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _QuantityButton(
+            icon: Icons.remove,
+            onTap: onDec,
+            color: onDec != null ? Colors.black87 : Colors.grey[300]!,
+            backgroundColor: const Color(0xFFF5F5F8),
+          ),
+          const SizedBox(width: 24),
+          SizedBox(
+            width: 32,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Text(
+                '$quantity',
+                key: ValueKey<int>(quantity),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 24),
+          _QuantityButton(
+            icon: Icons.add,
+            onTap: onInc,
+            color: Colors.white,
+            backgroundColor: accent,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuantityButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color color;
+  final Color backgroundColor;
+
+  const _QuantityButton({
+    required this.icon,
+    required this.onTap,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: backgroundColor,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.hardEdge,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, size: 20, color: color),
+        ),
+      ),
     );
   }
 }

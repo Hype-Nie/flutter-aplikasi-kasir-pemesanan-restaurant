@@ -23,6 +23,10 @@ class _CustomerCartPageState extends ConsumerState<CustomerCartPage> {
     });
   }
 
+  Future<void> _onRefresh() async {
+    await ref.read(customerCartProvider.notifier).fetchCart();
+  }
+
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFFFF460A);
@@ -54,14 +58,22 @@ class _CustomerCartPageState extends ConsumerState<CustomerCartPage> {
         ),
         centerTitle: true,
       ),
-      body: switch (state.status) {
-        CustomerCartStatus.loading => const ShimmerCartItem(),
-        _ when state.items.isEmpty => EmptyCartView(
-          accent: accent,
-          onStartOrdering: () => Navigator.pop(context),
-        ),
-        _ => _CartContent(state: state, size: size, accent: accent),
-      },
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: accent,
+        backgroundColor: Colors.white,
+        edgeOffset: 20,
+        displacement: 40,
+        strokeWidth: 3,
+        child: switch (state.status) {
+          CustomerCartStatus.loading => const ShimmerCartItem(),
+          _ when state.items.isEmpty => EmptyCartView(
+            accent: accent,
+            onStartOrdering: () => Navigator.pop(context),
+          ),
+          _ => _CartContent(state: state, size: size, accent: accent),
+        },
+      ),
     );
   }
 }
@@ -116,12 +128,6 @@ class _CartContent extends ConsumerWidget {
                 onRemove: () => ref
                     .read(customerCartProvider.notifier)
                     .removeFromCart(item.id),
-                onDec: () => ref
-                    .read(customerCartProvider.notifier)
-                    .updateCartQuantity(item.id, item.quantity - 1),
-                onInc: () => ref
-                    .read(customerCartProvider.notifier)
-                    .updateCartQuantity(item.id, item.quantity + 1),
               );
             },
           ),

@@ -108,7 +108,7 @@ class CustomerProfileNotifier extends Notifier<CustomerProfileState> {
             await MultipartFile.fromFile(avatarPath, filename: 'avatar.jpg'),
           ),
         );
-        response = await DioClient.instance.put(
+        response = await DioClient.instance.post(
           '/api/users/$userId',
           data: formData,
           options: Options(contentType: 'multipart/form-data'),

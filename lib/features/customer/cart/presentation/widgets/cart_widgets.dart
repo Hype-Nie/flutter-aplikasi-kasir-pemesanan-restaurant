@@ -6,15 +6,13 @@ import 'package:restaurant/shared/widgets/tappable_card.dart';
 class CartItemTile extends StatelessWidget {
   final CartItem item;
   final Color accent;
-  final VoidCallback onRemove, onDec, onInc;
+  final VoidCallback onRemove;
 
   const CartItemTile({
     super.key,
     required this.item,
     required this.accent,
     required this.onRemove,
-    required this.onDec,
-    required this.onInc,
   });
 
   @override
@@ -176,12 +174,14 @@ class CartItemTile extends StatelessWidget {
                             ),
                           ],
                         ),
-                        QtyControl(
-                          qty: item.quantity,
-                          accent: accent,
-                          onDec: onDec,
-                          onInc: onInc,
-                        ),
+                        Text(
+                            'x${item.quantity}',
+                            style: TextStyle(
+                              color: accent,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
                       ],
                     ),
                   ),

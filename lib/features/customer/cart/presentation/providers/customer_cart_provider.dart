@@ -136,18 +136,19 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
     required String menuImageUrl,
     required List<int> addonIds,
     required List<String> addonNames,
+    int quantity = 1,
   }) async {
     try {
       final userId = await TokenStorage.getUserId();
       if (userId == null) return;
 
       final addonTotal = addonNames.fold<double>(0, (s, p) => s + (double.tryParse(p) ?? 0));
-      final subtotal = (double.tryParse(unitPrice) ?? 0) + addonTotal;
+      final subtotal = ((double.tryParse(unitPrice) ?? 0) + addonTotal) * quantity;
 
       final cartData = {
         'user_id': userId.toString(),
         'menu_id': menuId.toString(),
-        'quantity': '1',
+        'quantity': quantity.toString(),
         'unit_price': unitPrice,
         'subtotal': subtotal.toStringAsFixed(2),
       };
@@ -203,63 +204,6 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
         status: CustomerCartStatus.failure,
         message: 'Something went wrong.',
       );
-    }
-  }
-
-  Future<void> updateCartQuantity(int cartId, int quantity) async {
-    if (quantity < 1) return;
-
-    final currentItem = state.items.where((i) => i.id == cartId).firstOrNull;
-    if (currentItem == null) return;
-
-    final unitPrice = double.tryParse(currentItem.unitPrice) ?? 0;
-    final addonTotal = currentItem.addons.fold<double>(0, (s, a) => s + (double.tryParse(a.addonPrice) ?? 0));
-    final itemSubtotal = (unitPrice + addonTotal) * quantity;
-    final optimisticItems = state.items.map((i) {
-      if (i.id == cartId) {
-        return currentItem.copyWith(
-          quantity: quantity,
-          subtotal: itemSubtotal.toStringAsFixed(2),
-        );
-      }
-      return i;
-    }).toList();
-    state = state.copyWith(items: optimisticItems);
-
-    try {
-      final userId = await TokenStorage.getUserId();
-      if (userId == null) return;
-
-      await DioClient.instance.delete('/api/carts/$cartId');
-
-      final cartData = {
-        'user_id': userId.toString(),
-        'menu_id': currentItem.menuId.toString(),
-        'quantity': quantity.toString(),
-        'unit_price': currentItem.unitPrice,
-        'subtotal': itemSubtotal.toStringAsFixed(2),
-      };
-
-      final cartResponse = await DioClient.instance.post(
-        '/api/carts',
-        data: cartData,
-      );
-      final newCartId = (cartResponse.data as Map<String, dynamic>)['id'] as int;
-
-      for (final addon in currentItem.addons) {
-        await DioClient.instance.post(
-          '/api/cart-addons',
-          data: {
-            'cart_id': newCartId.toString(),
-            'addon_id': addon.addonId.toString(),
-            'addon_price': addon.addonPrice,
-          },
-        );
-      }
-
-      await fetchCart();
-    } catch (_) {
-      await fetchCart();
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:restaurant/features/customer/dashboard/presentation/pages/customer_dashboard_page.dart';
 import 'package:restaurant/features/customer/profile/presentation/widgets/shimmer_loading.dart';
 import 'package:restaurant/shared/widgets/tappable_card.dart';
 
@@ -29,6 +30,10 @@ class _CustomerOrderHistoryPageState
     });
   }
 
+  Future<void> _onRefresh() async {
+    await ref.read(customerOrderHistoryProvider.notifier).fetchOrders();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(customerOrderHistoryProvider);
@@ -53,7 +58,15 @@ class _CustomerOrderHistoryPageState
         ),
         centerTitle: true,
       ),
-      body: _buildBody(state),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        color: _accent,
+        backgroundColor: Colors.white,
+        edgeOffset: 20,
+        displacement: 40,
+        strokeWidth: 3,
+        child: _buildBody(state),
+      ),
     );
   }
 
@@ -155,7 +168,10 @@ class _CustomerOrderHistoryPageState
               width: double.infinity,
               height: 64,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CustomerDashboardPage()),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _accent,
                   shape: RoundedRectangleBorder(
