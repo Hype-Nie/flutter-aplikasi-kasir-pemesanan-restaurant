@@ -23,6 +23,10 @@ class _CustomerCartPageState extends ConsumerState<CustomerCartPage> {
     });
   }
 
+  Future<void> _onRefresh() async {
+    await ref.read(customerCartProvider.notifier).fetchCart();
+  }
+
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFFFF460A);
@@ -54,14 +58,17 @@ class _CustomerCartPageState extends ConsumerState<CustomerCartPage> {
         ),
         centerTitle: true,
       ),
-      body: switch (state.status) {
-        CustomerCartStatus.loading => const ShimmerCartItem(),
-        _ when state.items.isEmpty => EmptyCartView(
-          accent: accent,
-          onStartOrdering: () => Navigator.pop(context),
-        ),
-        _ => _CartContent(state: state, size: size, accent: accent),
-      },
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: switch (state.status) {
+          CustomerCartStatus.loading => const ShimmerCartItem(),
+          _ when state.items.isEmpty => EmptyCartView(
+            accent: accent,
+            onStartOrdering: () => Navigator.pop(context),
+          ),
+          _ => _CartContent(state: state, size: size, accent: accent),
+        },
+      ),
     );
   }
 }

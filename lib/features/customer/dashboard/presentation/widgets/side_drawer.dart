@@ -4,9 +4,9 @@ import 'package:restaurant/features/auth/logout/presentation/pages/auth_logout_p
 import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
 import 'package:restaurant/features/customer/profile/presentation/pages/customer_profile_page.dart';
 import 'package:restaurant/features/customer/profile/presentation/pages/customer_privacy_policy_page.dart';
-import 'package:restaurant/shared/pages/no_internet_page.dart';
+import 'package:restaurant/features/customer/profile/presentation/pages/customer_faq_page.dart';
 
-import '../pages/customer_offers_page.dart';
+// import '../pages/customer_offers_page.dart';
 
 class SideDrawer extends StatelessWidget {
   final bool open;
@@ -39,21 +39,26 @@ class SideDrawer extends StatelessWidget {
                 icon: Icons.sync_alt_rounded,
                 onTap: () => _push(context, const CustomerOrderHistoryPage()),
               ),
-              DrawerAction(
-                title: 'offer and promo',
-                icon: Icons.local_offer_outlined,
-                onTap: () => _push(context, const CustomerOffersPage()),
-              ),
+              // DrawerAction(
+              //   title: 'offer and promo',
+              //   icon: Icons.local_offer_outlined,
+              //   onTap: () => _push(context, const CustomerOffersPage()),
+              // ),
               DrawerAction(
                 title: 'Privacy policy',
                 icon: Icons.chat_bubble_outline_rounded,
                 onTap: () => _push(context, const CustomerPrivacyPolicyPage()),
               ),
               DrawerAction(
-                title: 'Security',
-                icon: Icons.shield_outlined,
-                onTap: () => _push(context, const NoInternetPage()),
+                title: 'FAQ',
+                icon: Icons.help_outline_rounded,
+                onTap: () => _push(context, const CustomerFaqPage()),
               ),
+              // DrawerAction(
+              //   title: 'Security',
+              //   icon: Icons.shield_outlined,
+              //   onTap: () => _push(context, const NoInternetPage()),
+              // ),
               const Spacer(),
               InkWell(
                 onTap: () {

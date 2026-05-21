@@ -30,6 +30,12 @@ class _CustomerOrderHistoryDetailPageState
     });
   }
 
+  Future<void> _onRefresh() async {
+    await ref
+        .read(customerOrderHistoryProvider.notifier)
+        .fetchOrderDetail(widget.order.id);
+  }
+
   Color _statusColor(String status) {
     if (status == 'completed') return Colors.green;
     if (status == 'pending') return Colors.orange;
@@ -64,20 +70,22 @@ class _CustomerOrderHistoryDetailPageState
         ),
         centerTitle: true,
       ),
-      body: Builder(
-        builder: (context) {
-          if (state.status == CustomerOrderHistoryStatus.loading) {
-            return const OrderDetailShimmer();
-          }
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DetailCard(
-                  children: [
-                    DetailRow(
-                      label: 'Status',
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: Builder(
+          builder: (context) {
+            if (state.status == CustomerOrderHistoryStatus.loading) {
+              return const OrderDetailShimmer();
+            }
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailCard(
+                    children: [
+                      DetailRow(
+                        label: 'Status',
                       value:
                           order.status[0].toUpperCase() +
                           order.status.substring(1),
@@ -155,6 +163,7 @@ class _CustomerOrderHistoryDetailPageState
             ),
           );
         },
+        ),
       ),
     );
   }

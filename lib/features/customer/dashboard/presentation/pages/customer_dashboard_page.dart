@@ -76,6 +76,13 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
     });
   }
 
+  Future<void> _onRefresh() async {
+    await Future.wait([
+      ref.read(customerDashboardProvider.notifier).fetchDashboardData(),
+      ref.read(customerCartProvider.notifier).fetchCart(),
+    ]);
+  }
+
   void _openSearchPage() {
     final q = _query.trim();
     if (q.isEmpty) {
@@ -172,7 +179,9 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
                     scale: _drawerOpen ? 0.86 : 1,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(_drawerOpen ? 30 : 0),
-                      child: DashboardHomeContent(
+                      child: RefreshIndicator(
+                        onRefresh: _onRefresh,
+                        child: DashboardHomeContent(
                         bg: bg,
                         accent: accent,
                         iconSize: iconSize,
@@ -226,6 +235,7 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
                         },
                         onVisibleMenuChanged: (index) =>
                             setState(() => _activeMenuIndex = index),
+                        ),
                       ),
                     ),
                   ),

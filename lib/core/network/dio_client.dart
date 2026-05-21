@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../config/env/env_config.dart';
 import 'api_interceptor.dart';
+import 'connectivity_interceptor.dart';
 
 class DioClient {
   static Dio? _instance;
@@ -21,6 +22,7 @@ class DioClient {
       ),
     );
 
+    dio.interceptors.add(ConnectivityInterceptor());
     dio.interceptors.add(AuthInterceptor());
 
     return dio;

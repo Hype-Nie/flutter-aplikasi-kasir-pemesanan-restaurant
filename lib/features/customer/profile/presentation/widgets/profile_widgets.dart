@@ -220,7 +220,6 @@ class ProfileBody extends StatelessWidget {
             title: 'Privacy Policy',
             onTap: () => navigate(const CustomerPrivacyPolicyPage()),
           ),
-          ProfileMenuItem(title: 'Help', onTap: () {}),
           const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,

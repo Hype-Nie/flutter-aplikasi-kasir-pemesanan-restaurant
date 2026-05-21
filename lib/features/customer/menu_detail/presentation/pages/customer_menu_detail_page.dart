@@ -51,6 +51,12 @@ class _CustomerMenuDetailPageState
     });
   }
 
+  Future<void> _onRefresh() async {
+    await ref
+        .read(customerMenuDetailProvider.notifier)
+        .fetchMenuAddons(widget.menuId);
+  }
+
   void _toggleAddon(int addonId) {
     setState(() {
       (_selectedAddonIds.contains(addonId)
@@ -101,9 +107,11 @@ class _CustomerMenuDetailPageState
             children: [
               _buildAppBar(),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Center(
@@ -146,6 +154,7 @@ class _CustomerMenuDetailPageState
                       ),
                       const SizedBox(height: 40),
                     ],
+                    ),
                   ),
                 ),
               ),

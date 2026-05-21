@@ -25,6 +25,10 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
     });
   }
 
+  Future<void> _onRefresh() async {
+    await ref.read(customerProfileProvider.notifier).fetchUser();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(customerProfileProvider);
@@ -50,11 +54,14 @@ class _CustomerProfilePageState extends ConsumerState<CustomerProfilePage> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: ProfileBody(
-          state: state,
-          accent: _accent,
-          navigate: (page) =>
-              Navigator.push(context, MaterialPageRoute(builder: (_) => page)),
+        body: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: ProfileBody(
+            state: state,
+            accent: _accent,
+            navigate: (page) =>
+                Navigator.push(context, MaterialPageRoute(builder: (_) => page)),
+          ),
         ),
       ),
     );

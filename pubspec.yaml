@@ -23,6 +23,7 @@ dependencies:
   flutter_image_compress: ^2.3.0
   pdf: ^3.11.3
   printing: 5.13.1
+  connectivity_plus: ^6.0.5
 
 dev_dependencies:
   flutter_test:

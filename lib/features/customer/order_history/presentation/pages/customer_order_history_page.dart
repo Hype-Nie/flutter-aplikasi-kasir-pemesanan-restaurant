@@ -30,6 +30,10 @@ class _CustomerOrderHistoryPageState
     });
   }
 
+  Future<void> _onRefresh() async {
+    await ref.read(customerOrderHistoryProvider.notifier).fetchOrders();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(customerOrderHistoryProvider);
@@ -54,7 +58,10 @@ class _CustomerOrderHistoryPageState
         ),
         centerTitle: true,
       ),
-      body: _buildBody(state),
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: _buildBody(state),
+      ),
     );
   }
 
