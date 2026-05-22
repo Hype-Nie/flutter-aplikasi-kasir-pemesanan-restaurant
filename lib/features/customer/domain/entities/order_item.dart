@@ -19,12 +19,12 @@ class OrderItem extends Equatable {
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
     return OrderItem(
-      id: json['id'] as int,
-      orderId: json['order_id'] as int,
-      menuId: json['menu_id'] as int,
-      quantity: json['quantity'] as int,
-      unitPrice: json['unit_price'] as String,
-      subtotal: json['subtotal'] as String,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      orderId: int.tryParse(json['order_id']?.toString() ?? '') ?? 0,
+      menuId: int.tryParse(json['menu_id']?.toString() ?? '') ?? 0,
+      quantity: int.tryParse(json['quantity']?.toString() ?? '') ?? 0,
+      unitPrice: json['unit_price']?.toString() ?? '0',
+      subtotal: json['subtotal']?.toString() ?? '0',
     );
   }
 
@@ -54,10 +54,10 @@ class OrderItemAddon extends Equatable {
 
   factory OrderItemAddon.fromJson(Map<String, dynamic> json) {
     return OrderItemAddon(
-      id: json['id'] as int,
-      orderItemId: json['order_item_id'] as int,
-      addonId: json['addon_id'] as int,
-      addonPrice: json['addon_price'] as String,
+      id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      orderItemId: int.tryParse(json['order_item_id']?.toString() ?? '') ?? 0,
+      addonId: int.tryParse(json['addon_id']?.toString() ?? '') ?? 0,
+      addonPrice: json['addon_price']?.toString() ?? '0',
     );
   }
 

@@ -31,18 +31,18 @@ class Order extends Equatable {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
-      id: json['id'] as int,
-      orderNumber: json['order_number'] as String,
-      userId: json['user_id'] as int,
-      orderType: json['order_type'] as String,
-      tableNumber: json['table_number'] as String?,
-      status: json['status'] as String,
-      paymentMethod: json['payment_method'] as String?,
-      deliveryMethod: json['delivery_method'] as String?,
-      totalAmount: json['total_amount'] as String,
-      notes: json['notes'] as String?,
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      orderNumber: json['order_number']?.toString() ?? '',
+      userId: int.tryParse(json['user_id']?.toString() ?? '') ?? 0,
+      orderType: json['order_type']?.toString() ?? '',
+      tableNumber: json['table_number']?.toString(),
+      status: json['status']?.toString() ?? '',
+      paymentMethod: json['payment_method']?.toString(),
+      deliveryMethod: json['delivery_method']?.toString(),
+      totalAmount: json['total_amount']?.toString() ?? '0',
+      notes: json['notes']?.toString(),
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 

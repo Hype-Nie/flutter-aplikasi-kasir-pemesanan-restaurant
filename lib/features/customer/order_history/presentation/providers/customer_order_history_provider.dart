@@ -73,6 +73,16 @@ class CustomerOrderHistoryNotifier
     return [];
   }
 
+  Map<String, dynamic> _toMap(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      if (data.containsKey('data') && data['data'] is Map<String, dynamic>) {
+        return data['data'] as Map<String, dynamic>;
+      }
+      return data;
+    }
+    return {};
+  }
+
   Future<void> fetchOrders() async {
     state = state.copyWith(
       status: CustomerOrderHistoryStatus.loading,
@@ -117,8 +127,10 @@ class CustomerOrderHistoryNotifier
         DioClient.instance.get('/api/order-item-addons'),
       ]);
 
-      final order =
-          Order.fromJson(baseResults[0].data as Map<String, dynamic>);
+      final orderData = _toMap(baseResults[0].data);
+      if (orderData.isEmpty) throw Exception('Order not found');
+      
+      final order = Order.fromJson(orderData);
 
       final orderItems = _toList(baseResults[1].data)
           .map((j) => OrderItem.fromJson(j as Map<String, dynamic>))

@@ -81,6 +81,19 @@ class _CustomerOrderHistoryDetailPageState
               // Items load asynchronously
               if (itemsLoading)
                 const OrderDetailShimmer()
+              else if (state.detailStatus == CustomerOrderHistoryStatus.failure)
+                DetailCard(children: [
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        state.message,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ])
               else
                 DetailCard(children: buildOrderItemList(state)),
               const SizedBox(height: 24),

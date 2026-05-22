@@ -91,7 +91,7 @@ class _CustomerOrderHistoryPageState
         ),
         child: OrderCard(
           order: state.orders[i],
-          onTap: () {}, // Handled by TappableCard
+          onTap: null, // Handled by TappableCard
         ),
       ),
     );

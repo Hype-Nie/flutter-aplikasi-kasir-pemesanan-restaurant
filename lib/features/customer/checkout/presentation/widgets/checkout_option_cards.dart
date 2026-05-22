@@ -26,7 +26,7 @@ class OrderTypeCard extends StatelessWidget {
           child: Divider(color: Colors.grey.shade200, height: 1),
         ),
         _TypeOpt(
-          val: 'take_away', cur: orderType, label: 'Take Away',
+          val: 'takeaway', cur: orderType, label: 'Take Away',
           sub: 'Pick up your order', icon: Icons.takeout_dining,
           bg: const Color(0xFFEB4794), accent: accent, onChanged: onChanged,
         ),

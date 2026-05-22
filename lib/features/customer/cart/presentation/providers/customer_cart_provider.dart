@@ -23,7 +23,7 @@ class CustomerCartState extends Equatable {
   String get totalAmount {
     double total = 0;
     for (final item in items) {
-      total += double.tryParse(item.subtotal) ?? 0;
+      total += double.tryParse(item.totalWithAddons) ?? 0;
     }
     return total.toStringAsFixed(2);
   }
@@ -142,8 +142,9 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
       final userId = await TokenStorage.getUserId();
       if (userId == null) return;
 
-      final addonTotal = addonNames.fold<double>(0, (s, p) => s + (double.tryParse(p) ?? 0));
-      final subtotal = ((double.tryParse(unitPrice) ?? 0) + addonTotal) * quantity;
+      // subtotal = menu unit price × quantity only (addons posted separately)
+      final menuPrice = double.tryParse(unitPrice) ?? 0;
+      final subtotal = menuPrice * quantity;
 
       final cartData = {
         'user_id': userId.toString(),
