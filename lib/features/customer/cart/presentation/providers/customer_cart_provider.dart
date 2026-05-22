@@ -206,6 +206,10 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
       );
     }
   }
+
+  void clearCart() {
+    state = const CustomerCartState();
+  }
 }
 
 final customerCartProvider =

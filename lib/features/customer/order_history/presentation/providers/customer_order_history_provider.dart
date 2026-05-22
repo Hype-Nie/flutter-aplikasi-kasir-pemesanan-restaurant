@@ -53,31 +53,32 @@ class CustomerOrderHistoryState extends Equatable {
 
   @override
   List<Object?> get props => [
-    status,
-    message,
-    orders,
-    orderDetail,
-    orderItems,
-    orderItemAddons,
-    menus,
-    addons,
+    status, message, orders, orderDetail,
+    orderItems, orderItemAddons, menus, addons,
   ];
 }
 
-class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
+class CustomerOrderHistoryNotifier
+    extends Notifier<CustomerOrderHistoryState> {
   @override
   CustomerOrderHistoryState build() => const CustomerOrderHistoryState();
+
+  // Safely extract a List from any response shape
+  List<dynamic> _toList(dynamic data) {
+    if (data is List) return data;
+    if (data is Map && data['data'] is List) return data['data'] as List;
+    return [];
+  }
 
   Future<void> fetchOrders() async {
     state = state.copyWith(
       status: CustomerOrderHistoryStatus.loading,
       message: '',
     );
-
     try {
       final userId = await TokenStorage.getUserId();
       final response = await DioClient.instance.get('/api/orders');
-      final data = response.data as List<dynamic>;
+      final data = _toList(response.data);
       final orders = data
           .map((json) => Order.fromJson(json as Map<String, dynamic>))
           .where((o) => userId == null || o.userId == userId)
@@ -105,40 +106,39 @@ class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
       status: CustomerOrderHistoryStatus.loading,
       message: '',
     );
-
     try {
       final results = await Future.wait([
         DioClient.instance.get('/api/orders/$orderId'),
-        _fetchAll('/api/order-items'),
-        _fetchAll('/api/order-item-addons'),
-        _fetchAll('/api/menus'),
-        _fetchAll('/api/addons'),
+        DioClient.instance.get('/api/order-items'),
+        DioClient.instance.get('/api/order-item-addons'),
+        DioClient.instance.get('/api/menus'),
+        DioClient.instance.get('/api/addons'),
       ]);
 
-      final order = Order.fromJson(results[0].data as Map<String, dynamic>);
+      final order =
+          Order.fromJson(results[0].data as Map<String, dynamic>);
 
-      final orderItems = (results[1].data as List<dynamic>)
-          .map((json) => OrderItem.fromJson(json as Map<String, dynamic>))
+      final orderItems = _toList(results[1].data)
+          .map((j) => OrderItem.fromJson(j as Map<String, dynamic>))
           .where((item) => item.orderId == orderId)
           .toList();
 
-      final allItemAddons = (results[2].data as List<dynamic>)
-          .map((json) => OrderItemAddon.fromJson(json as Map<String, dynamic>))
+      final allItemAddons = _toList(results[2].data)
+          .map((j) => OrderItemAddon.fromJson(j as Map<String, dynamic>))
           .toList();
 
       final orderItemIds = orderItems.map((item) => item.id).toSet();
-      final itemAddons = allItemAddons
-          .where((a) => orderItemIds.contains(a.orderItemId))
-          .toList();
+      final itemAddons =
+          allItemAddons.where((a) => orderItemIds.contains(a.orderItemId)).toList();
 
       final menus = <int, Menu>{};
-      for (final json in results[3].data as List<dynamic>) {
+      for (final json in _toList(results[3].data)) {
         final menu = Menu.fromJson(json as Map<String, dynamic>);
         menus[menu.id] = menu;
       }
 
       final addons = <int, Addon>{};
-      for (final json in results[4].data as List<dynamic>) {
+      for (final json in _toList(results[4].data)) {
         final addon = Addon.fromJson(json as Map<String, dynamic>);
         addons[addon.id] = addon;
       }
@@ -164,10 +164,6 @@ class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
     }
   }
 
-  Future<dynamic> _fetchAll(String path) async {
-    return DioClient.instance.get(path);
-  }
-
   String _mapError(DioException e) {
     final data = e.response?.data;
     if (data is Map) {
@@ -178,7 +174,7 @@ class CustomerOrderHistoryNotifier extends Notifier<CustomerOrderHistoryState> {
   }
 }
 
-final customerOrderHistoryProvider =
-    NotifierProvider<CustomerOrderHistoryNotifier, CustomerOrderHistoryState>(
-      CustomerOrderHistoryNotifier.new,
-    );
+final customerOrderHistoryProvider = NotifierProvider<
+    CustomerOrderHistoryNotifier, CustomerOrderHistoryState>(
+  CustomerOrderHistoryNotifier.new,
+);
