@@ -62,6 +62,10 @@ class _CashierOrderHistoryDetailPageState
         return const Color(0xFF3498DB);
       case 'preparing':
         return const Color(0xFFF39C12);
+      case 'ready':
+        return const Color(0xFF1ABC9C);
+      case 'served':
+        return const Color(0xFF16A085);
       default:
         return _accent;
     }

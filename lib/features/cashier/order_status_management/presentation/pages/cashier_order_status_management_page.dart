@@ -84,6 +84,10 @@ class _View extends StatelessWidget {
         return const Color(0xFF3498DB);
       case 'preparing':
         return const Color(0xFF2ECC71);
+      case 'ready':
+        return const Color(0xFF1ABC9C);
+      case 'served':
+        return const Color(0xFF16A085);
       case 'completed':
         return const Color(0xFF27AE60);
       default:
@@ -96,6 +100,10 @@ class _View extends StatelessWidget {
       case 'accepted':
         return 'preparing';
       case 'preparing':
+        return 'ready';
+      case 'ready':
+        return 'served';
+      case 'served':
         return 'completed';
       default:
         return c;
@@ -107,6 +115,10 @@ class _View extends StatelessWidget {
       case 'accepted':
         return 'Start Preparing';
       case 'preparing':
+        return 'Mark Ready';
+      case 'ready':
+        return 'Mark Served';
+      case 'served':
         return 'Complete Order';
       default:
         return 'Done';
@@ -219,7 +231,10 @@ class _View extends StatelessWidget {
                           final o = orders[i];
                           final sc = _statusColor(o.status);
                           final canAdvance =
-                              o.status == 'accepted' || o.status == 'preparing';
+                              o.status == 'accepted' ||
+                              o.status == 'preparing' ||
+                              o.status == 'ready' ||
+                              o.status == 'served';
                           return InkWell(
                             onTap: () {
                               Navigator.of(context).push(

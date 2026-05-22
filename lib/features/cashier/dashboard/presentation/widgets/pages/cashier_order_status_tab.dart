@@ -23,6 +23,10 @@ class CashierOrderStatusTab extends ConsumerWidget {
         return const Color(0xFF3498DB);
       case 'preparing':
         return const Color(0xFF2ECC71);
+      case 'ready':
+        return const Color(0xFF1ABC9C);
+      case 'served':
+        return const Color(0xFF16A085);
       case 'completed':
         return const Color(0xFF27AE60);
       default:
@@ -35,6 +39,10 @@ class CashierOrderStatusTab extends ConsumerWidget {
       case 'accepted':
         return 'preparing';
       case 'preparing':
+        return 'ready';
+      case 'ready':
+        return 'served';
+      case 'served':
         return 'completed';
       default:
         return current;
@@ -46,6 +54,10 @@ class CashierOrderStatusTab extends ConsumerWidget {
       case 'accepted':
         return 'Start Preparing';
       case 'preparing':
+        return 'Mark Ready';
+      case 'ready':
+        return 'Mark Served';
+      case 'served':
         return 'Complete Order';
       default:
         return 'Done';
@@ -59,7 +71,14 @@ class CashierOrderStatusTab extends ConsumerWidget {
     final activeOrders = state.activeOrders;
 
     final accepted = activeOrders.where((o) => o.status == 'accepted').length;
-    final preparing = activeOrders.where((o) => o.status == 'preparing').length;
+    final inProgress = activeOrders
+      .where(
+        (o) =>
+          o.status == 'preparing' ||
+          o.status == 'ready' ||
+          o.status == 'served',
+      )
+      .length;
     final completed = state.completedOrders.length;
 
     return RefreshIndicator(
@@ -85,8 +104,8 @@ class CashierOrderStatusTab extends ConsumerWidget {
                 const SizedBox(width: 10),
                 _StatusSummaryCard(
                   icon: Icons.outdoor_grill_rounded,
-                  label: 'Preparing',
-                  count: preparing,
+                  label: 'Processing',
+                  count: inProgress,
                   color: const Color(0xFF2ECC71),
                 ),
                 const SizedBox(width: 10),
@@ -299,8 +318,12 @@ class _OrderStatusCardState extends State<_OrderStatusCard> {
         return 1;
       case 'preparing':
         return 2;
-      case 'completed':
+      case 'ready':
         return 3;
+      case 'served':
+        return 4;
+      case 'completed':
+        return 5;
       default:
         return 0;
     }
@@ -526,7 +549,14 @@ class _OrderProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['Pending', 'Accepted', 'Preparing', 'Completed'];
+    const labels = [
+      'Pending',
+      'Accepted',
+      'Preparing',
+      'Ready',
+      'Served',
+      'Completed',
+    ];
     return Row(
       children: List.generate(labels.length, (i) {
         final done = i < step;

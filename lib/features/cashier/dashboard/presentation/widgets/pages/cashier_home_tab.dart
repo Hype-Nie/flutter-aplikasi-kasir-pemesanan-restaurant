@@ -509,6 +509,10 @@ class _RecentOrderTile extends StatelessWidget {
         return const Color(0xFF3498DB);
       case 'preparing':
         return const Color(0xFF2ECC71);
+      case 'ready':
+        return const Color(0xFF1ABC9C);
+      case 'served':
+        return const Color(0xFF16A085);
       case 'completed':
         return const Color(0xFF27AE60);
       case 'cancelled':
