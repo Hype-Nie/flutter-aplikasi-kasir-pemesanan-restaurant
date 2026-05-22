@@ -12,6 +12,7 @@ enum CustomerOrderHistoryStatus { initial, loading, success, failure }
 
 class CustomerOrderHistoryState extends Equatable {
   final CustomerOrderHistoryStatus status;
+  final CustomerOrderHistoryStatus detailStatus; // separate from list
   final String message;
   final List<Order> orders;
   final Order? orderDetail;
@@ -22,6 +23,7 @@ class CustomerOrderHistoryState extends Equatable {
 
   const CustomerOrderHistoryState({
     this.status = CustomerOrderHistoryStatus.initial,
+    this.detailStatus = CustomerOrderHistoryStatus.initial,
     this.message = '',
     this.orders = const [],
     this.orderDetail,
@@ -33,6 +35,7 @@ class CustomerOrderHistoryState extends Equatable {
 
   CustomerOrderHistoryState copyWith({
     CustomerOrderHistoryStatus? status,
+    CustomerOrderHistoryStatus? detailStatus,
     String? message,
     List<Order>? orders,
     Order? orderDetail,
@@ -42,6 +45,7 @@ class CustomerOrderHistoryState extends Equatable {
     Map<int, Addon>? addons,
   }) => CustomerOrderHistoryState(
     status: status ?? this.status,
+    detailStatus: detailStatus ?? this.detailStatus,
     message: message ?? this.message,
     orders: orders ?? this.orders,
     orderDetail: orderDetail ?? this.orderDetail,
@@ -53,7 +57,7 @@ class CustomerOrderHistoryState extends Equatable {
 
   @override
   List<Object?> get props => [
-    status, message, orders, orderDetail,
+    status, detailStatus, message, orders, orderDetail,
     orderItems, orderItemAddons, menus, addons,
   ];
 }
@@ -63,7 +67,6 @@ class CustomerOrderHistoryNotifier
   @override
   CustomerOrderHistoryState build() => const CustomerOrderHistoryState();
 
-  // Safely extract a List from any response shape
   List<dynamic> _toList(dynamic data) {
     if (data is List) return data;
     if (data is Map && data['data'] is List) return data['data'] as List;
@@ -103,48 +106,61 @@ class CustomerOrderHistoryNotifier
 
   Future<void> fetchOrderDetail(int orderId) async {
     state = state.copyWith(
-      status: CustomerOrderHistoryStatus.loading,
+      detailStatus: CustomerOrderHistoryStatus.loading,
       message: '',
     );
     try {
-      final results = await Future.wait([
+      // Fetch order + all order-items in parallel
+      final baseResults = await Future.wait([
         DioClient.instance.get('/api/orders/$orderId'),
         DioClient.instance.get('/api/order-items'),
         DioClient.instance.get('/api/order-item-addons'),
-        DioClient.instance.get('/api/menus'),
-        DioClient.instance.get('/api/addons'),
       ]);
 
       final order =
-          Order.fromJson(results[0].data as Map<String, dynamic>);
+          Order.fromJson(baseResults[0].data as Map<String, dynamic>);
 
-      final orderItems = _toList(results[1].data)
+      final orderItems = _toList(baseResults[1].data)
           .map((j) => OrderItem.fromJson(j as Map<String, dynamic>))
           .where((item) => item.orderId == orderId)
           .toList();
 
-      final allItemAddons = _toList(results[2].data)
+      final orderItemIds = orderItems.map((item) => item.id).toSet();
+
+      final allAddons = _toList(baseResults[2].data)
           .map((j) => OrderItemAddon.fromJson(j as Map<String, dynamic>))
           .toList();
-
-      final orderItemIds = orderItems.map((item) => item.id).toSet();
       final itemAddons =
-          allItemAddons.where((a) => orderItemIds.contains(a.orderItemId)).toList();
+          allAddons.where((a) => orderItemIds.contains(a.orderItemId)).toList();
 
+      // Fetch menus and addons only if we have items
       final menus = <int, Menu>{};
-      for (final json in _toList(results[3].data)) {
-        final menu = Menu.fromJson(json as Map<String, dynamic>);
-        menus[menu.id] = menu;
-      }
-
       final addons = <int, Addon>{};
-      for (final json in _toList(results[4].data)) {
-        final addon = Addon.fromJson(json as Map<String, dynamic>);
-        addons[addon.id] = addon;
+
+      if (orderItems.isNotEmpty) {
+        final menuIds = orderItems.map((i) => i.menuId).toSet();
+        final addonIds = itemAddons.map((a) => a.addonId).toSet();
+
+        final extraResults = await Future.wait([
+          DioClient.instance.get('/api/menus'),
+          if (addonIds.isNotEmpty) DioClient.instance.get('/api/addons'),
+        ]);
+
+        for (final j in _toList(extraResults[0].data)) {
+          final menu = Menu.fromJson(j as Map<String, dynamic>);
+          if (menuIds.contains(menu.id)) menus[menu.id] = menu;
+        }
+
+        if (addonIds.isNotEmpty && extraResults.length > 1) {
+          for (final j in _toList(extraResults[1].data)) {
+            final addon = Addon.fromJson(j as Map<String, dynamic>);
+            if (addonIds.contains(addon.id)) addons[addon.id] = addon;
+          }
+        }
       }
 
       state = state.copyWith(
-        status: CustomerOrderHistoryStatus.success,
+        detailStatus: CustomerOrderHistoryStatus.success,
         orderDetail: order,
         orderItems: orderItems,
         orderItemAddons: itemAddons,
@@ -153,13 +169,13 @@ class CustomerOrderHistoryNotifier
       );
     } on DioException catch (e) {
       state = state.copyWith(
-        status: CustomerOrderHistoryStatus.failure,
+        detailStatus: CustomerOrderHistoryStatus.failure,
         message: _mapError(e),
       );
-    } catch (_) {
+    } catch (e) {
       state = state.copyWith(
-        status: CustomerOrderHistoryStatus.failure,
-        message: 'Something went wrong.',
+        detailStatus: CustomerOrderHistoryStatus.failure,
+        message: 'Error: ${e.toString()}',
       );
     }
   }

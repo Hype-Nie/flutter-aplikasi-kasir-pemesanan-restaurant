@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:restaurant/features/customer/cart/presentation/providers/customer_cart_provider.dart';
 import 'package:restaurant/features/customer/order_history/presentation/pages/customer_order_history_page.dart';
 import 'package:restaurant/features/customer/payment_gateway/presentation/pages/customer_payment_gateway_page.dart';
@@ -50,10 +49,7 @@ class _CustomerCheckoutPageState
     final state = ref.read(customerCheckoutProvider);
     if (state.status == CheckoutStatus.success) {
       ref.read(customerCartProvider.notifier).clearCart();
-      if (_payment == 'card' &&
-          state.checkoutUrl != null &&
-          state.checkoutUrl!.isNotEmpty) {
-        _openUrl(state.checkoutUrl!);
+      if (_payment == 'card') {
         Navigator.pushReplacement(context, MaterialPageRoute(
           builder: (_) => CustomerPaymentGatewayPage(
             paymentId: state.paymentId ?? 0,
@@ -62,9 +58,9 @@ class _CustomerCheckoutPageState
           ),
         ));
       } else {
-        // Cash — go directly to order history
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Order ${state.orderNumber ?? ''} placed! Pay at cashier.'),
+          content: Text(
+              'Order ${state.orderNumber ?? ''} placed! Pay at cashier.'),
           backgroundColor: const Color(0xFF4CAF50),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -79,12 +75,6 @@ class _CustomerCheckoutPageState
     }
   }
 
-  void _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

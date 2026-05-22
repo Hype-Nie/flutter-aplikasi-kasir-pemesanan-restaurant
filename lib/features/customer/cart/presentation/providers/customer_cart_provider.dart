@@ -207,8 +207,20 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
     }
   }
 
-  void clearCart() {
+  Future<void> clearCart() async {
+    final ids = state.items.map((i) => i.id).toList();
+    // Clear local state immediately for instant UI feedback
     state = const CustomerCartState();
+    // Delete all items from the server in parallel
+    if (ids.isNotEmpty) {
+      await Future.wait(
+        ids.map((id) async {
+          try {
+            await DioClient.instance.delete('/api/carts/$id');
+          } catch (_) {}
+        }),
+      );
+    }
   }
 }
 

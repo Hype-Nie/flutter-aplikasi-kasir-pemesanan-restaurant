@@ -99,8 +99,6 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
         'order_type': orderType,
         'table_number': orderType == 'dine_in' ? (tableNumber ?? '') : '',
         'payment_method': paymentMethod,
-        'delivery_method':
-            orderType == 'take_away' ? 'pick_up' : 'door_delivery',
         'total_amount': totalAmount,
         'notes': notes ?? '',
       });

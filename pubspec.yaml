@@ -25,6 +25,7 @@ dependencies:
   printing: 5.13.1
   connectivity_plus: ^6.0.5
   url_launcher: ^6.2.5
+  webview_flutter: ^4.7.0
 
 dev_dependencies:
   flutter_test:
