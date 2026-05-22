@@ -22,11 +22,9 @@ subprojects {
 }
 
 subprojects {
-    if (name == "printing") {
-        plugins.withId("com.android.library") {
-            extensions.configure<LibraryExtension> {
-                compileSdk = 35
-            }
+    plugins.withId("com.android.library") {
+        extensions.configure<LibraryExtension> {
+            compileSdk = 36
         }
     }
 }

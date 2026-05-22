@@ -42,7 +42,12 @@ class CheckoutState extends Equatable {
 
   @override
   List<Object?> get props => [
-    status, message, orderId, orderNumber, paymentId, checkoutUrl,
+    status,
+    message,
+    orderId,
+    orderNumber,
+    paymentId,
+    checkoutUrl,
   ];
 }
 
@@ -93,28 +98,34 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
       final orderNum = '#${ordersCount + 1}';
 
       // 2. Create order
-      final orderRes = await DioClient.instance.post('/api/orders', data: {
-        'order_number': orderNum,
-        'user_id': userId,
-        'order_type': orderType,
-        'table_number': orderType == 'dine_in' ? (tableNumber ?? '') : '',
-        'payment_method': paymentMethod,
-        'total_amount': totalAmount,
-        'notes': notes ?? '',
-      });
+      final orderRes = await DioClient.instance.post(
+        '/api/orders',
+        data: {
+          'order_number': orderNum,
+          'user_id': userId,
+          'order_type': orderType,
+          'table_number': orderType == 'dine_in' ? (tableNumber ?? '') : '',
+          'payment_method': paymentMethod,
+          'total_amount': totalAmount,
+          'notes': notes ?? '',
+        },
+      );
       final orderData = orderRes.data as Map<String, dynamic>;
       final orderId = orderData['id'] as int;
       final orderNumber = orderData['order_number'] as String? ?? orderNum;
 
       // 3. Create order items in parallel
-      final itemFutures = items.map((item) =>
-        DioClient.instance.post('/api/order-items', data: {
-          'order_id': orderId,
-          'menu_id': item.menuId,
-          'quantity': item.quantity,
-          'unit_price': item.unitPrice,
-          'subtotal': item.subtotal,
-        }),
+      final itemFutures = items.map(
+        (item) => DioClient.instance.post(
+          '/api/order-items',
+          data: {
+            'order_id': orderId,
+            'menu_id': item.menuId,
+            'quantity': item.quantity,
+            'unit_price': item.unitPrice,
+            'subtotal': item.subtotal,
+          },
+        ),
       );
       final itemResults = await Future.wait(itemFutures);
 
@@ -125,11 +136,14 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
         final orderItemId = orderItemData['id'] as int;
         for (final addon in items[i].addons) {
           addonFutures.add(
-            DioClient.instance.post('/api/order-item-addons', data: {
-              'order_item_id': orderItemId,
-              'addon_id': addon.addonId,
-              'addon_price': addon.addonPrice,
-            }),
+            DioClient.instance.post(
+              '/api/order-item-addons',
+              data: {
+                'order_item_id': orderItemId,
+                'addon_id': addon.addonId,
+                'addon_price': addon.addonPrice,
+              },
+            ),
           );
         }
       }
@@ -140,32 +154,58 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
         // Fetch user email for Xendit payer_email
         String payerEmail = 'customer@restaurant.com';
         try {
-          final userRes =
-              await DioClient.instance.get('/api/users/$userId');
+          final userRes = await DioClient.instance.get('/api/users/$userId');
           final userData = userRes.data as Map<String, dynamic>;
           payerEmail = userData['email'] as String? ?? payerEmail;
         } catch (_) {}
 
-        final paymentRes = await DioClient.instance.post(
-          '/api/payments/xendit/checkout',
-          data: {
-            'order_id': orderId,
-            'success_redirect_url': 'https://example.com/success',
-            'failure_redirect_url': 'https://example.com/failed',
-            'payer_email': payerEmail,
-            'description': 'Order $orderNumber',
-            'invoice_duration': 86400,
-          },
-        );
-        final payData = paymentRes.data as Map<String, dynamic>;
-        state = state.copyWith(
-          status: CheckoutStatus.success,
-          orderId: orderId,
-          orderNumber: orderNumber,
-          paymentId: payData['id'] as int?,
-          checkoutUrl: payData['checkout_url'] as String? ??
-              payData['invoice_url'] as String? ?? '',
-        );
+        try {
+          final paymentRes = await DioClient.instance.post(
+            '/api/payments/xendit/checkout',
+            data: {
+              'order_id': orderId,
+              'success_redirect_url': 'https://example.com/success',
+              'failure_redirect_url': 'https://example.com/failed',
+              'payer_email': payerEmail,
+              'description': 'Order $orderNumber',
+              'invoice_duration': 86400,
+            },
+          );
+          final payData = paymentRes.data as Map<String, dynamic>;
+          final checkoutUrl =
+              payData['checkout_url'] as String? ??
+              payData['invoice_url'] as String? ??
+              '';
+          if (checkoutUrl.isEmpty) {
+            await _rollbackOrder(orderId);
+            state = state.copyWith(
+              status: CheckoutStatus.failure,
+              message: 'Failed to create payment link.',
+            );
+            return;
+          }
+          state = state.copyWith(
+            status: CheckoutStatus.success,
+            orderId: orderId,
+            orderNumber: orderNumber,
+            paymentId: payData['id'] as int?,
+            checkoutUrl: checkoutUrl,
+          );
+        } on DioException catch (e) {
+          await _rollbackOrder(orderId);
+          state = state.copyWith(
+            status: CheckoutStatus.failure,
+            message: _mapError(e),
+          );
+          return;
+        } catch (_) {
+          await _rollbackOrder(orderId);
+          state = state.copyWith(
+            status: CheckoutStatus.failure,
+            message: 'Failed to create payment link.',
+          );
+          return;
+        }
       } else {
         // Cash — no payment gateway needed
         state = state.copyWith(
@@ -190,6 +230,19 @@ class CheckoutNotifier extends Notifier<CheckoutState> {
   }
 
   void reset() => state = const CheckoutState();
+
+  Future<void> _rollbackOrder(int orderId) async {
+    try {
+      await DioClient.instance.delete('/api/orders/$orderId');
+    } catch (_) {
+      try {
+        await DioClient.instance.put(
+          '/api/orders/$orderId',
+          data: {'status': 'cancelled'},
+        );
+      } catch (_) {}
+    }
+  }
 
   String _mapError(DioException e) {
     final data = e.response?.data;

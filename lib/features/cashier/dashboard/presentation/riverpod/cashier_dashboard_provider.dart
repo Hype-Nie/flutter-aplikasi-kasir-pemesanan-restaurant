@@ -27,11 +27,11 @@ class CashierDashboardState extends Equatable {
 
   List<Order> get activeOrders => orders
       .where(
-      (o) =>
-        o.status == 'accepted' ||
-        o.status == 'preparing' ||
-        o.status == 'ready' ||
-        o.status == 'served',
+        (o) =>
+            o.status == 'accepted' ||
+            o.status == 'preparing' ||
+            o.status == 'ready' ||
+            o.status == 'served',
       )
       .toList();
 

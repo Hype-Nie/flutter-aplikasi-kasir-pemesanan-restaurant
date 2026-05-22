@@ -54,14 +54,14 @@ class CashierOrderStatusManagementNotifier
           .map((e) => Order.fromJson(e as Map<String, dynamic>))
           .toList();
 
-        // Filter for status flow orders only (accepted/preparing/ready/served)
-        final activeOrders = allOrders
+      // Filter for status flow orders only (accepted/preparing/ready/served)
+      final activeOrders = allOrders
           .where(
-          (o) =>
-            o.status == 'accepted' ||
-            o.status == 'preparing' ||
-            o.status == 'ready' ||
-            o.status == 'served',
+            (o) =>
+                o.status == 'accepted' ||
+                o.status == 'preparing' ||
+                o.status == 'ready' ||
+                o.status == 'served',
           )
           .toList();
 
