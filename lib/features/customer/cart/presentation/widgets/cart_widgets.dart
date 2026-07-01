@@ -7,12 +7,16 @@ class CartItemTile extends StatelessWidget {
   final CartItem item;
   final Color accent;
   final VoidCallback onRemove;
+  final VoidCallback onIncrease;
+  final VoidCallback onDecrease;
 
   const CartItemTile({
     super.key,
     required this.item,
     required this.accent,
     required this.onRemove,
+    required this.onIncrease,
+    required this.onDecrease,
   });
 
   @override
@@ -174,14 +178,12 @@ class CartItemTile extends StatelessWidget {
                             ),
                           ],
                         ),
-                        Text(
-                            'x${item.quantity}',
-                            style: TextStyle(
-                              color: accent,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
+                        QtyControl(
+                          qty: item.quantity,
+                          accent: accent,
+                          onDec: onDecrease,
+                          onInc: onIncrease,
+                        ),
                       ],
                     ),
                   ),

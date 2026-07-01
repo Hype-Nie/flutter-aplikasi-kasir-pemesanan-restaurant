@@ -46,8 +46,10 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
   @override
   CustomerCartState build() => const CustomerCartState();
 
-  Future<void> fetchCart() async {
-    state = state.copyWith(status: CustomerCartStatus.loading, message: '');
+  Future<void> fetchCart({bool showLoading = true}) async {
+    if (showLoading) {
+      state = state.copyWith(status: CustomerCartStatus.loading, message: '');
+    }
     try {
       final userId = await TokenStorage.getUserId();
       if (userId == null) {
@@ -201,6 +203,54 @@ class CustomerCartNotifier extends Notifier<CustomerCartState> {
       if (data is Map && data['message'] is String) msg = data['message'];
       state = state.copyWith(status: CustomerCartStatus.failure, message: msg);
     } catch (_) {
+      state = state.copyWith(
+        status: CustomerCartStatus.failure,
+        message: 'Something went wrong.',
+      );
+    }
+  }
+
+  Future<void> updateCartQuantity(CartItem item, int newQuantity) async {
+    if (newQuantity < 1) {
+      await removeFromCart(item.id);
+      return;
+    }
+
+    try {
+      final unitPrice = double.tryParse(item.unitPrice) ?? 0;
+      final newSubtotal = unitPrice * newQuantity;
+
+      // Optimistic update
+      final newItems = state.items.map((i) {
+        if (i.id == item.id) {
+          return i.copyWith(
+            quantity: newQuantity,
+            subtotal: newSubtotal.toStringAsFixed(2),
+          );
+        }
+        return i;
+      }).toList();
+      state = state.copyWith(items: newItems);
+
+      await DioClient.instance.put(
+        '/api/carts/${item.id}',
+        data: {
+          'quantity': newQuantity.toString(),
+          'subtotal': newSubtotal.toStringAsFixed(2),
+        },
+      );
+
+      await fetchCart(showLoading: false);
+    } on DioException catch (e) {
+      // Revert on failure
+      await fetchCart(showLoading: false);
+      final data = e.response?.data;
+      String msg = 'Failed to update quantity.';
+      if (data is Map && data['message'] is String) msg = data['message'];
+      state = state.copyWith(status: CustomerCartStatus.failure, message: msg);
+    } catch (_) {
+      // Revert on failure
+      await fetchCart(showLoading: false);
       state = state.copyWith(
         status: CustomerCartStatus.failure,
         message: 'Something went wrong.',
