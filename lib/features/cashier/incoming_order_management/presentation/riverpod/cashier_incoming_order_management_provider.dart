@@ -1,0 +1,136 @@
+import 'package:dio/dio.dart';
+import 'package:equatable/equatable.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:restaurant/config/strings/cashier_strings.dart';
+import 'package:restaurant/core/network/dio_client.dart';
+import 'package:restaurant/shared/models/order.dart';
+
+enum CashierIncomingOrderManagementStatus { initial, loading, success, failure }
+
+class CashierIncomingOrderManagementState extends Equatable {
+  const CashierIncomingOrderManagementState({
+    this.status = CashierIncomingOrderManagementStatus.initial,
+    this.message = '',
+    this.orders = const [],
+  });
+
+  final CashierIncomingOrderManagementStatus status;
+  final String message;
+  final List<Order> orders;
+
+  CashierIncomingOrderManagementState copyWith({
+    CashierIncomingOrderManagementStatus? status,
+    String? message,
+    List<Order>? orders,
+  }) {
+    return CashierIncomingOrderManagementState(
+      status: status ?? this.status,
+      message: message ?? this.message,
+      orders: orders ?? this.orders,
+    );
+  }
+
+  @override
+  List<Object?> get props => [status, message, orders];
+}
+
+class CashierIncomingOrderManagementNotifier
+    extends Notifier<CashierIncomingOrderManagementState> {
+  @override
+  CashierIncomingOrderManagementState build() =>
+      const CashierIncomingOrderManagementState();
+
+  Future<void> fetchOrders() async {
+    state = state.copyWith(
+      status: CashierIncomingOrderManagementStatus.loading,
+      message: '',
+    );
+
+    try {
+      final response = await DioClient.instance.get('/api/orders');
+      final data = response.data as List<dynamic>;
+      final allOrders =
+          data.map((e) => Order.fromJson(e as Map<String, dynamic>)).toList();
+
+      // Filter for incoming/pending orders only
+      final pendingOrders =
+          allOrders.where((o) => o.status == 'pending').toList();
+
+      state = state.copyWith(
+        status: CashierIncomingOrderManagementStatus.success,
+        orders: pendingOrders,
+      );
+    } on DioException catch (e) {
+      state = state.copyWith(
+        status: CashierIncomingOrderManagementStatus.failure,
+        message: _mapError(e),
+      );
+    } catch (_) {
+      state = state.copyWith(
+        status: CashierIncomingOrderManagementStatus.failure,
+        message: CashierStrings.unexpectedError,
+      );
+    }
+  }
+
+  Future<bool> updateOrderStatus(int id, String status_) async {
+    state = state.copyWith(
+      status: CashierIncomingOrderManagementStatus.loading,
+      message: '',
+    );
+
+    try {
+      await DioClient.instance.put('/api/orders/$id', data: {
+        'status': status_,
+      });
+
+      state = state.copyWith(
+        status: CashierIncomingOrderManagementStatus.success,
+        message: CashierStrings.orderStatusUpdated,
+      );
+
+      await fetchOrders();
+      return true;
+    } on DioException catch (e) {
+      state = state.copyWith(
+        status: CashierIncomingOrderManagementStatus.failure,
+        message: _mapError(e),
+      );
+      return false;
+    } catch (_) {
+      state = state.copyWith(
+        status: CashierIncomingOrderManagementStatus.failure,
+        message: CashierStrings.unexpectedError,
+      );
+      return false;
+    }
+  }
+
+  String _mapError(DioException e) {
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return CashierStrings.networkError;
+    }
+    final data = e.response?.data;
+    if (data is Map) {
+      if (e.response?.statusCode == 422) {
+        final errors = data['errors'];
+        if (errors is Map) {
+          final first = errors.values.first;
+          return first is List ? first.first.toString() : first.toString();
+        }
+      }
+      final message = data['message'];
+      if (message is String && message.isNotEmpty) return message;
+    }
+    return CashierStrings.orderFetchError;
+  }
+}
+
+final cashierIncomingOrderManagementProvider =
+    NotifierProvider<
+      CashierIncomingOrderManagementNotifier,
+      CashierIncomingOrderManagementState
+    >(CashierIncomingOrderManagementNotifier.new);
