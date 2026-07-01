@@ -37,17 +37,17 @@ class LoginForm extends StatelessWidget {
           obscure: true,
         ),
         const SizedBox(height: 18),
-        TextButton(
-          onPressed: () {},
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            foregroundColor: accent,
-          ),
-          child: const Text(
-            'Forgot passcode?',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-          ),
-        ),
+        // TextButton(
+        //   onPressed: () {},
+        //   style: TextButton.styleFrom(
+        //     padding: EdgeInsets.zero,
+        //     foregroundColor: accent,
+        //   ),
+        //   child: const Text(
+        //     'Forgot passcode?',
+        //     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        //   ),
+        // ),
         const Spacer(),
         SizedBox(
           width: double.infinity,

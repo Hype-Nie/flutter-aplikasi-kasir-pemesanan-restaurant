@@ -89,8 +89,8 @@ class ItemRow extends StatelessWidget {
 
 class OrderCard extends StatelessWidget {
   final Order order;
-  final VoidCallback onTap;
-  const OrderCard({super.key, required this.order, required this.onTap});
+  final VoidCallback? onTap;
+  const OrderCard({super.key, required this.order, this.onTap});
 
   Color _statusColor() {
     if (order.isCompleted) return Colors.green;
@@ -101,76 +101,81 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _statusColor();
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+    final cardContent = Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.receipt_long_outlined, color: accent),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Order ${order.orderNumber}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    order.formattedDate,
-                    style: const TextStyle(color: Colors.black54, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            child: const Icon(Icons.receipt_long_outlined, color: accent),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  order.formattedTotal,
+                  'Order ${order.orderNumber}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: accent,
+                    fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  order.status[0].toUpperCase() + order.status.substring(1),
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  order.formattedDate,
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                order.formattedTotal,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                order.status[0].toUpperCase() + order.status.substring(1),
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
+
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        child: cardContent,
+      );
+    }
+    return cardContent;
   }
 }

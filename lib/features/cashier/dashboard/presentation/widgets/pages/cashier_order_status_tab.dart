@@ -23,6 +23,10 @@ class CashierOrderStatusTab extends ConsumerWidget {
         return const Color(0xFF3498DB);
       case 'preparing':
         return const Color(0xFF2ECC71);
+      case 'ready':
+        return const Color(0xFF1ABC9C);
+      case 'served':
+        return const Color(0xFF16A085);
       case 'completed':
         return const Color(0xFF27AE60);
       default:
@@ -35,6 +39,10 @@ class CashierOrderStatusTab extends ConsumerWidget {
       case 'accepted':
         return 'preparing';
       case 'preparing':
+        return 'ready';
+      case 'ready':
+        return 'served';
+      case 'served':
         return 'completed';
       default:
         return current;
@@ -46,6 +54,10 @@ class CashierOrderStatusTab extends ConsumerWidget {
       case 'accepted':
         return 'Start Preparing';
       case 'preparing':
+        return 'Mark Ready';
+      case 'ready':
+        return 'Mark Served';
+      case 'served':
         return 'Complete Order';
       default:
         return 'Done';
@@ -59,7 +71,14 @@ class CashierOrderStatusTab extends ConsumerWidget {
     final activeOrders = state.activeOrders;
 
     final accepted = activeOrders.where((o) => o.status == 'accepted').length;
-    final preparing = activeOrders.where((o) => o.status == 'preparing').length;
+    final inProgress = activeOrders
+        .where(
+          (o) =>
+              o.status == 'preparing' ||
+              o.status == 'ready' ||
+              o.status == 'served',
+        )
+        .length;
     final completed = state.completedOrders.length;
 
     return RefreshIndicator(
@@ -85,8 +104,8 @@ class CashierOrderStatusTab extends ConsumerWidget {
                 const SizedBox(width: 10),
                 _StatusSummaryCard(
                   icon: Icons.outdoor_grill_rounded,
-                  label: 'Preparing',
-                  count: preparing,
+                  label: 'Processing',
+                  count: inProgress,
                   color: const Color(0xFF2ECC71),
                 ),
                 const SizedBox(width: 10),
@@ -154,7 +173,8 @@ class CashierOrderStatusTab extends ConsumerWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => CashierOrderHistoryDetailPage(order: order),
+                      builder: (_) =>
+                          CashierOrderHistoryDetailPage(order: order),
                     ),
                   );
                 },
@@ -299,8 +319,12 @@ class _OrderStatusCardState extends State<_OrderStatusCard> {
         return 1;
       case 'preparing':
         return 2;
-      case 'completed':
+      case 'ready':
         return 3;
+      case 'served':
+        return 4;
+      case 'completed':
+        return 5;
       default:
         return 0;
     }
@@ -327,167 +351,171 @@ class _OrderStatusCardState extends State<_OrderStatusCard> {
         ),
         child: Column(
           children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: widget.statusColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.receipt_long_rounded,
-                    color: widget.statusColor,
-                    size: 20,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.order.orderNumber,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF121212),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${widget.order.orderType.replaceAll('_', ' ')} · ${widget.formattedPrice}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF8B8B8B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: widget.statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  widget.order.status.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: widget.statusColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Row(
               children: [
-                _InfoPill(label: widget.order.paymentMethod.replaceAll('_', ' ')),
-                _InfoPill(label: widget.order.deliveryMethod.replaceAll('_', ' ')),
-                if ((widget.order.tableNumber ?? '').isNotEmpty)
-                  _InfoPill(label: widget.order.tableNumber!),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: widget.statusColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.receipt_long_rounded,
+                      color: widget.statusColor,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.order.orderNumber,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF121212),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${widget.order.orderType.replaceAll('_', ' ')} · ${widget.formattedPrice}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF8B8B8B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: widget.statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    widget.order.status.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: widget.statusColor,
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          // --- Progress indicator ---
-          _OrderProgress(step: _step),
-
-          const SizedBox(height: 12),
-
-          // --- Action buttons ---
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 38,
-                  child: OutlinedButton(
-                    onPressed: _loading
-                        ? null
-                        : () async {
-                            setState(() => _loading = true);
-                            await widget.onCancel();
-                            if (mounted) setState(() => _loading = false);
-                          },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFE74C3C),
-                      side: const BorderSide(color: Color(0xFFE74C3C)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _InfoPill(
+                    label: widget.order.paymentMethod.replaceAll('_', ' '),
                   ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 38,
-                  child: ElevatedButton(
-                    onPressed: _loading
-                        ? null
-                        : () async {
-                            setState(() => _loading = true);
-                            await widget.onAdvance();
-                            if (mounted) setState(() => _loading = false);
-                          },
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: _accent.withValues(alpha: 0.10),
-                      foregroundColor: _accent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: Text(
-                      widget.nextLabel,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                  _InfoPill(
+                    label: widget.order.deliveryMethod.replaceAll('_', ' '),
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              'Tap for detail',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF8B8B8B),
+                  if ((widget.order.tableNumber ?? '').isNotEmpty)
+                    _InfoPill(label: widget.order.tableNumber!),
+                ],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+
+            // --- Progress indicator ---
+            _OrderProgress(step: _step),
+
+            const SizedBox(height: 12),
+
+            // --- Action buttons ---
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 38,
+                    child: OutlinedButton(
+                      onPressed: _loading
+                          ? null
+                          : () async {
+                              setState(() => _loading = true);
+                              await widget.onCancel();
+                              if (mounted) setState(() => _loading = false);
+                            },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFE74C3C),
+                        side: const BorderSide(color: Color(0xFFE74C3C)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 38,
+                    child: ElevatedButton(
+                      onPressed: _loading
+                          ? null
+                          : () async {
+                              setState(() => _loading = true);
+                              await widget.onAdvance();
+                              if (mounted) setState(() => _loading = false);
+                            },
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: _accent.withValues(alpha: 0.10),
+                        foregroundColor: _accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        widget.nextLabel,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                'Tap for detail',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8B8B8B),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -526,7 +554,14 @@ class _OrderProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['Pending', 'Accepted', 'Preparing', 'Completed'];
+    const labels = [
+      'Pending',
+      'Accepted',
+      'Preparing',
+      'Ready',
+      'Served',
+      'Completed',
+    ];
     return Row(
       children: List.generate(labels.length, (i) {
         final done = i < step;

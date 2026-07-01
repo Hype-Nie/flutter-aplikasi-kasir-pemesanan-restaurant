@@ -49,11 +49,12 @@ class CartItem extends Equatable {
   );
 
   String get totalWithAddons {
-    double total = double.tryParse(subtotal) ?? 0;
-    for (final addon in addons) {
-      total += (double.tryParse(addon.addonPrice) ?? 0) * quantity;
-    }
-    return total.toStringAsFixed(2);
+    final menuSubtotal = double.tryParse(subtotal) ?? 0;
+    final addonSubtotal = addons.fold<double>(
+      0,
+      (sum, addon) => sum + ((double.tryParse(addon.addonPrice) ?? 0) * quantity),
+    );
+    return (menuSubtotal + addonSubtotal).toStringAsFixed(2);
   }
 
   @override

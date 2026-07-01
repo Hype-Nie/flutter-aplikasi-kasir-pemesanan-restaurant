@@ -62,6 +62,10 @@ class _CashierOrderHistoryDetailPageState
         return const Color(0xFF3498DB);
       case 'preparing':
         return const Color(0xFFF39C12);
+      case 'ready':
+        return const Color(0xFF1ABC9C);
+      case 'served':
+        return const Color(0xFF16A085);
       default:
         return _accent;
     }
@@ -121,9 +125,7 @@ class _CashierOrderHistoryDetailPageState
           children: [
             if (isLoading) ...[
               const SizedBox(height: 180),
-              const Center(
-                child: CircularProgressIndicator(color: _accent),
-              ),
+              const Center(child: CircularProgressIndicator(color: _accent)),
               const SizedBox(height: 240),
             ] else ...[
               Container(
@@ -188,10 +190,7 @@ class _CashierOrderHistoryDetailPageState
                     if (order.tableNumber != null &&
                         order.tableNumber!.trim().isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      DetailRow(
-                        label: 'Table',
-                        value: order.tableNumber!,
-                      ),
+                      DetailRow(label: 'Table', value: order.tableNumber!),
                     ],
                     const SizedBox(height: 10),
                     DetailRow(
@@ -203,12 +202,10 @@ class _CashierOrderHistoryDetailPageState
                       label: 'Delivery Method',
                       value: _toLabel(order.deliveryMethod),
                     ),
-                    if (order.notes != null && order.notes!.trim().isNotEmpty) ...[
+                    if (order.notes != null &&
+                        order.notes!.trim().isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      DetailRow(
-                        label: 'Notes',
-                        value: order.notes!,
-                      ),
+                      DetailRow(label: 'Notes', value: order.notes!),
                     ],
                     const Divider(height: 24),
                     DetailRow(
@@ -294,7 +291,8 @@ class _CashierOrderHistoryDetailPageState
                                 ),
                               ),
                             ],
-                            if (i != items.length - 1) const Divider(height: 20),
+                            if (i != items.length - 1)
+                              const Divider(height: 20),
                           ],
                         ],
                       ),

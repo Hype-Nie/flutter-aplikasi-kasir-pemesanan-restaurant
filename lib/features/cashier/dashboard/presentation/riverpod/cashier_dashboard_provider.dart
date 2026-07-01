@@ -26,7 +26,13 @@ class CashierDashboardState extends Equatable {
       orders.where((o) => o.status == 'pending').toList();
 
   List<Order> get activeOrders => orders
-      .where((o) => o.status == 'accepted' || o.status == 'preparing')
+      .where(
+        (o) =>
+            o.status == 'accepted' ||
+            o.status == 'preparing' ||
+            o.status == 'ready' ||
+            o.status == 'served',
+      )
       .toList();
 
   List<Order> get completedOrders =>

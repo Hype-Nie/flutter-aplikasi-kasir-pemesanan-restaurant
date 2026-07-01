@@ -49,7 +49,10 @@ class CashierHomeTab extends ConsumerWidget {
     return _buildOrderSearchText(order).contains(normalized);
   }
 
-  Future<void> _showPrintSelectionSheet(BuildContext context, List<Order> completedOrders) async {
+  Future<void> _showPrintSelectionSheet(
+    BuildContext context,
+    List<Order> completedOrders,
+  ) async {
     if (completedOrders.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No completed orders available to print')),
@@ -58,9 +61,16 @@ class CashierHomeTab extends ConsumerWidget {
     }
 
     // Sort to show newest first
-    final sorted = [...completedOrders]..sort((a, b) {
-        final bDate = b.createdAt ?? b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final aDate = a.createdAt ?? a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final sorted = [...completedOrders]
+      ..sort((a, b) {
+        final bDate =
+            b.createdAt ??
+            b.updatedAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final aDate =
+            a.createdAt ??
+            a.updatedAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         return bDate.compareTo(aDate);
       });
 
@@ -313,7 +323,9 @@ class _PrintReceiptSheetState extends State<_PrintReceiptSheet> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -347,7 +359,10 @@ class _PrintReceiptSheetState extends State<_PrintReceiptSheet> {
               prefixIcon: const Icon(Icons.search_rounded),
               filled: true,
               fillColor: const Color(0xFFF6F6F6),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
@@ -369,7 +384,9 @@ class _PrintReceiptSheetState extends State<_PrintReceiptSheet> {
               if (_query.trim().isNotEmpty)
                 TextButton(
                   onPressed: _clearQuery,
-                  style: TextButton.styleFrom(foregroundColor: widget.accentColor),
+                  style: TextButton.styleFrom(
+                    foregroundColor: widget.accentColor,
+                  ),
                   child: const Text(
                     'Clear',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -399,24 +416,41 @@ class _PrintReceiptSheetState extends State<_PrintReceiptSheet> {
                       final timeStr = widget.formatOrderTime(orderTime);
 
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         leading: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: widget.accentColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(Icons.receipt_long, color: widget.accentColor, size: 20),
+                          child: Icon(
+                            Icons.receipt_long,
+                            color: widget.accentColor,
+                            size: 20,
+                          ),
                         ),
                         title: Text(
                           order.orderNumber,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
                         ),
                         subtitle: Text(
                           '$timeStr  •  ${widget.formatPrice(order.totalAmount)}',
-                          style: const TextStyle(color: Color(0xFF8B8B8B), fontSize: 13),
+                          style: const TextStyle(
+                            color: Color(0xFF8B8B8B),
+                            fontSize: 13,
+                          ),
                         ),
-                        trailing: Icon(Icons.print_rounded, color: widget.accentColor, size: 22),
+                        trailing: Icon(
+                          Icons.print_rounded,
+                          color: widget.accentColor,
+                          size: 22,
+                        ),
                         onTap: () => widget.onPrint(order),
                       );
                     },
@@ -509,6 +543,10 @@ class _RecentOrderTile extends StatelessWidget {
         return const Color(0xFF3498DB);
       case 'preparing':
         return const Color(0xFF2ECC71);
+      case 'ready':
+        return const Color(0xFF1ABC9C);
+      case 'served':
+        return const Color(0xFF16A085);
       case 'completed':
         return const Color(0xFF27AE60);
       case 'cancelled':
