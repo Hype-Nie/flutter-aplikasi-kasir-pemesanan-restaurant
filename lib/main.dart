@@ -36,6 +36,7 @@ class _MainAppState extends ConsumerState<MainApp> {
     });
 
     return MaterialApp(
+      title: 'Mie Mang Jaen',
       navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       home: const SplashPage(),

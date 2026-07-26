@@ -25,23 +25,17 @@ class AuthTopPanel extends StatelessWidget {
       child: Column(
         children: [
           const Spacer(),
-          const Icon(
-            Icons.restaurant_menu_rounded,
-            color: Color(0xFFFF8A26),
-            size: 84,
+          Image.asset(
+            'assets/img/logo.png',
+            height: 120,
           ),
-          const SizedBox(height: 4),
-          Container(
-            width: 34,
-            height: 22,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE12020),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(12),
-                bottomRight: Radius.circular(12),
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
-              ),
+          const SizedBox(height: 12),
+          const Text(
+            'Mie Mang Jaen',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1B1B1B),
             ),
           ),
           const Spacer(),
