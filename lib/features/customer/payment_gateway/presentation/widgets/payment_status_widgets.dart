@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 class PaymentPendingView extends StatefulWidget {
   final VoidCallback onOpenPayment;
-  const PaymentPendingView({super.key, required this.onOpenPayment});
+  final VoidCallback onRefresh;
+  const PaymentPendingView({super.key, required this.onOpenPayment, required this.onRefresh});
 
   @override
   State<PaymentPendingView> createState() => _PaymentPendingViewState();
@@ -68,6 +69,23 @@ class _PaymentPendingViewState extends State<PaymentPendingView>
               )),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accent, elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity, height: 64,
+            child: OutlinedButton.icon(
+              onPressed: widget.onRefresh,
+              icon: const Icon(Icons.refresh_rounded, color: accent, size: 22),
+              label: const Text('Refresh Status', style: TextStyle(
+                color: accent, fontSize: 17, fontWeight: FontWeight.w600,
+              )),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: accent, width: 2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),

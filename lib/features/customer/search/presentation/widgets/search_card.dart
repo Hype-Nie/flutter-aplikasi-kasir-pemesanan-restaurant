@@ -30,6 +30,7 @@ class SearchCard extends StatelessWidget {
             heroTag: 'search-${item['id']}',
             description: item['description'] ?? '',
             isAvailable: item['is_available'] != 'false',
+            category: item['category'] ?? '',
           ),
         ),
       ),

@@ -76,6 +76,7 @@ class _CustomerMenuResultsPageState extends State<CustomerMenuResultsPage> {
                 heroTag: item.heroTag,
                 description: item.description,
                 isAvailable: item.isAvailable,
+                category: item.category,
               ),
             ),
           );

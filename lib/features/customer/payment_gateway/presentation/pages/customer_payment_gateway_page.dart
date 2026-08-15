@@ -47,6 +47,18 @@ class _PaymentGatewayPageState
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
       ..setNavigationDelegate(NavigationDelegate(
+        onNavigationRequest: (request) {
+          if (request.url.contains('example.com')) {
+            setState(() => _showWebView = false);
+            ref.read(customerPaymentGatewayProvider.notifier).checkPaymentStatus(widget.paymentId);
+            return NavigationDecision.prevent;
+          }
+          if (!request.url.startsWith('http') && !request.url.startsWith('https')) {
+            // Can be intercepted for e-wallet deep links (e.g. gojek://, shopeepay://)
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
         onPageStarted: (_) => setState(() => _webReady = false),
         onPageFinished: (_) => setState(() => _webReady = true),
         onWebResourceError: (_) => setState(() => _webReady = true),
@@ -143,6 +155,7 @@ class _PaymentGatewayPageState
 
     return PaymentPendingView(
       onOpenPayment: () => setState(() => _showWebView = true),
+      onRefresh: () => ref.read(customerPaymentGatewayProvider.notifier).checkPaymentStatus(widget.paymentId),
     );
   }
 }
