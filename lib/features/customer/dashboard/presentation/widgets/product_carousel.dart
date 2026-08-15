@@ -81,6 +81,7 @@ class ProductCarousel extends StatelessWidget {
                       heroTag: 'menu-${item.id}',
                       description: item.description,
                       isAvailable: item.isAvailable,
+                      category: item.category,
                     ),
                   ),
                 ),

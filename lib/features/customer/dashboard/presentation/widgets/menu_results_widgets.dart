@@ -120,6 +120,7 @@ class MenuResultItem {
   final String heroTag;
   final String description;
   final bool isAvailable;
+  final String category;
 
   const MenuResultItem({
     required this.id,
@@ -129,6 +130,7 @@ class MenuResultItem {
     required this.heroTag,
     required this.description,
     required this.isAvailable,
+    required this.category,
   });
 
   factory MenuResultItem.fromMap(Map<String, String> map) {
@@ -140,6 +142,7 @@ class MenuResultItem {
       heroTag: 'menu-results-${map['id']}',
       description: map['description'] ?? '',
       isAvailable: map['is_available'] != 'false',
+      category: map['category'] ?? '',
     );
   }
 }

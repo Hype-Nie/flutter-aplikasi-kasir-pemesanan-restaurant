@@ -18,6 +18,7 @@ class CustomerMenuDetailPage extends ConsumerStatefulWidget {
   final String heroTag;
   final String description;
   final bool isAvailable;
+  final String category;
 
   const CustomerMenuDetailPage({
     super.key,
@@ -29,6 +30,7 @@ class CustomerMenuDetailPage extends ConsumerStatefulWidget {
     this.heroTag = 'menu-detail',
     this.description = '',
     this.isAvailable = true,
+    this.category = '',
   });
 
   @override
@@ -152,13 +154,16 @@ class _CustomerMenuDetailPageState
                       const SizedBox(height: 32),
                       _buildDescription(),
                       const SizedBox(height: 24),
-                      MenuDetailAddonsSection(
-                        state: state,
-                        selectedAddonIds: _selectedAddonIds,
-                        accent: accent,
-                        onToggleAddon: _toggleAddon,
-                      ),
-                      const SizedBox(height: 40),
+                      if (widget.category.toLowerCase().contains('food') ||
+                          widget.category.toLowerCase().contains('makanan')) ...[
+                        MenuDetailAddonsSection(
+                          state: state,
+                          selectedAddonIds: _selectedAddonIds,
+                          accent: accent,
+                          onToggleAddon: _toggleAddon,
+                        ),
+                        const SizedBox(height: 40),
+                      ],
                     ],
                     ),
                   ),
