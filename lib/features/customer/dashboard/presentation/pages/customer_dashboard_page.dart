@@ -234,6 +234,7 @@ class _DashboardScreenState extends ConsumerState<_DashboardScreen> {
                                 heroTag: 'menu-${item.id}',
                                 description: item.description,
                                 isAvailable: item.isAvailable,
+                                category: item.category,
                               ),
                             ),
                           );
